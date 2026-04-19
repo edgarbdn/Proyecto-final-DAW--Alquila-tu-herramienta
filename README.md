@@ -8,15 +8,15 @@ La plataforma actúa como intermediaria, aplicando una comisión automática sob
 
 ## 🚀 Tech Stack
 
-| Capa | Tecnología |
-|---|---|
-| Frontend | Next.js 14 (App Router) + React |
-| Backend / API | Next.js API Routes |
-| Base de datos | Supabase (PostgreSQL) |
-| Autenticación | Supabase Auth |
-| Almacenamiento | Supabase Storage |
-| Pagos | Stripe |
-| Deploy | Vercel + Supabase Cloud |
+| Capa           | Tecnología                      |
+| -------------- | ------------------------------- |
+| Frontend       | Next.js 14 (App Router) + React |
+| Backend / API  | Next.js API Routes              |
+| Base de datos  | Supabase (PostgreSQL)           |
+| Autenticación  | Supabase Auth                   |
+| Almacenamiento | Supabase Storage                |
+| Pagos          | Stripe                          |
+| Deploy         | Vercel + Supabase Cloud         |
 
 ---
 
@@ -39,7 +39,7 @@ El proyecto sigue una arquitectura **monolítica con separación de responsabili
 
 ## ✨ Funcionalidades principales
 
-- Registro con roles: cliente, vendedor y admin
+- Registro con roles: cliente, vendedor y admin (cambiado a user/admin)
 - Publicación de herramientas con fotos, categoría, precio y descripción
 - Sistema de disponibilidad por fechas
 - Descuentos automáticos por tramos de días
@@ -82,13 +82,13 @@ El proyecto sigue una arquitectura **monolítica con separación de responsabili
 
 El proyecto está organizado en 5 sprints de 10 días en [GitHub Projects](../../projects).
 
-| Sprint | Contenido |
-|---|---|
-| Sprint 1 | Setup y autenticación |
-| Sprint 2 | Herramientas y categorías |
-| Sprint 3 | Alquileres y disponibilidad |
+| Sprint   | Contenido                        |
+| -------- | -------------------------------- |
+| Sprint 1 | Setup y autenticación            |
+| Sprint 2 | Herramientas y categorías        |
+| Sprint 3 | Alquileres y disponibilidad      |
 | Sprint 4 | Pagos, descuentos y valoraciones |
-| Sprint 5 | Dashboard admin y pulido final |
+| Sprint 5 | Dashboard admin y pulido final   |
 
 ---
 
