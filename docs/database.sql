@@ -1,6 +1,5 @@
 CREATE TYPE "rol_enum" AS ENUM (
-  'cliente',
-  'vendedor',
+  'usuario',
   'admin'
 );
 
@@ -24,7 +23,7 @@ CREATE TABLE "users" (
   "email" varchar UNIQUE NOT NULL,
   "nombre" varchar NOT NULL,
   "apellidos" varchar NOT NULL,
-  "rol" rol_enum NOT NULL DEFAULT 'cliente',
+  "rol" rol_enum NOT NULL DEFAULT 'usuario',
   "telefono" varchar,
   "ciudad" varchar,
   "direccion" varchar,
@@ -43,7 +42,7 @@ BEGIN
     new.email,
     COALESCE(new.raw_user_meta_data->>'nombre', ''),
     COALESCE(new.raw_user_meta_data->>'apellidos', ''),
-    COALESCE((new.raw_user_meta_data->>'rol')::rol_enum, 'cliente')
+    'usuario'
   );
   RETURN new;
 END;
