@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase";
 
 export default function LoginPage() {
@@ -8,6 +8,15 @@ export default function LoginPage() {
   const [password, setPassword] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        window.location.href = "/";
+      }
+    });
+  }, []);
 
   async function handleSubmit(e: any) {
     e.preventDefault();
@@ -30,7 +39,22 @@ export default function LoginPage() {
       return;
     }
 
-    window.location.href = "/";
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    // Consultamos su rol en la tabla users
+    const { data: perfil } = await supabase
+      .from("users")
+      .select("rol")
+      .eq("id", user!.id)
+      .single();
+
+    if (perfil?.rol === "admin") {
+      window.location.href = "/admin";
+    } else {
+      window.location.href = "/";
+    }
   }
 
   return (
