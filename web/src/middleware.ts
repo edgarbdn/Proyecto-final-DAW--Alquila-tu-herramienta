@@ -15,6 +15,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
+  // Si intentas ir a /perfil sin sesión, redirige a /login
+  if (!session && path.startsWith("/perfil")) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
   // Si intentas ir a /admin sin sesión, redirige a /login
   if (!session && path.startsWith("/admin")) {
     return NextResponse.redirect(new URL("/login", request.url));
