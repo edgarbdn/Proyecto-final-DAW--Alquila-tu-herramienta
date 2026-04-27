@@ -26,6 +26,7 @@ export default function PerfilPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
   useEffect(() => {
     async function loadProfile() {
@@ -62,6 +63,40 @@ export default function PerfilPage() {
 
     loadProfile();
   }, []);
+
+  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setAvatarFile(file);
+
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const extension = file.name.split(".").pop();
+    const fileName = `${user.id}/avatar.${extension}`;
+
+    const { error } = await supabase.storage
+      .from("avatars")
+      .upload(fileName, file, { upsert: true });
+
+    if (error) {
+      setError("Error al subir el avatar");
+      return;
+    }
+
+    const { data } = supabase.storage.from("avatars").getPublicUrl(fileName);
+
+    await supabase
+      .from("users")
+      .update({ avatar_url: data.publicUrl })
+      .eq("id", user.id);
+
+    setProfile((prev) => ({ ...prev, avatar_url: data.publicUrl }));
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -144,6 +179,19 @@ export default function PerfilPage() {
             value={profile.direccion_publica}
             onChange={handleChange}
           />
+        </div>
+        <div>
+          <label>Avatar</label>
+          {profile.avatar_url && (
+            <img
+              src={profile.avatar_url}
+              alt="Avatar"
+              width={100}
+              height={100}
+              style={{ borderRadius: "50%" }}
+            />
+          )}
+          <input type="file" accept="image/*" onChange={handleAvatarChange} />
         </div>
         {error && <p style={{ color: "red" }}>{error}</p>}
         {success && <p style={{ color: "green" }}>{success}</p>}
