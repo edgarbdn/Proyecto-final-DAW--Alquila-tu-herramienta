@@ -6,6 +6,7 @@ export default function AdminPage() {
       <h1>Panel de administración</h1>
       <ul>
         <li><Link href="/admin/categorias">Gestión de categorías</Link></li>
+        <li><Link href="/admin/configuracion">Configuración de la plataforma</Link></li>
       </ul>
     </div>
   );
