@@ -58,6 +58,14 @@ export async function GET(
     .order("created_at", { ascending: false })
     .limit(5);
 
+  // Descuentos de la herramienta
+  const { data: descuentos } = await supabase
+    .from("descuentos")
+    .select("id, dias_minimos, porcentaje")
+    .eq("herramienta_id", id)
+    .eq("activo", true)
+    .order("dias_minimos", { ascending: true });
+
   // Ordenar fotos: principal primero, luego por orden
   const fotosOrdenadas = [...(herramienta.fotos ?? [])].sort((a, b) => {
     if (a.es_principal) return -1;
@@ -72,5 +80,6 @@ export async function GET(
       (herramienta.precio_dia * (1 + comision)).toFixed(2),
     ),
     valoraciones: valoraciones ?? [],
+    descuentos: descuentos ?? [],
   });
 }

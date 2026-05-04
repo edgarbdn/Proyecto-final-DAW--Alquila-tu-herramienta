@@ -44,6 +44,13 @@ interface Herramienta {
   categoria: Categoria;
   fotos: Foto[];
   valoraciones: Valoracion[];
+  descuentos: Descuento[];
+}
+
+interface Descuento {
+  id: string;
+  dias_minimos: number;
+  porcentaje: number;
 }
 
 export default function DetalleHerramientaPage() {
@@ -174,6 +181,28 @@ export default function DetalleHerramientaPage() {
           )}
         </div>
       </div>
+
+      {/* Descuentos */}
+      {herramienta.descuentos.length > 0 && (
+        <div className="mt-10">
+          <h2 className="text-xl font-bold mb-4">Descuentos por días</h2>
+          <div className="space-y-2">
+            {herramienta.descuentos.map((d) => (
+              <div
+                key={d.id}
+                className="flex items-center justify-between border rounded-lg px-4 py-3 bg-green-50"
+              >
+                <p className="text-sm text-gray-700">
+                  A partir de <strong>{d.dias_minimos} días</strong>
+                </p>
+                <span className="text-green-600 font-bold">
+                  {d.porcentaje}% dto.
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Valoraciones */}
       {herramienta.valoraciones.length > 0 && (
