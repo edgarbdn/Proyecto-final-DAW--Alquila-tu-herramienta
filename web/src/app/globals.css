@@ -24,3 +24,30 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.rdp-day--ocupado {
+  background-color: #fee2e2 !important;
+  color: #dc2626 !important;
+  border-radius: 4px;
+}
+
+/* Días ocupados en rojo */
+.rdp-day--ocupado button {
+  background-color: #fee2e2 !important;
+  color: #dc2626 !important;
+}
+
+/* Días disponibles en verde (días futuros no ocupados) */
+.rdp-day:not(.rdp-day--ocupado):not(.rdp-day_disabled) button:not(:disabled) {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+/* Días seleccionados en azul (para que el rango se vea bien) */
+.rdp-day_selected button,
+.rdp-day_range_start button,
+.rdp-day_range_end button,
+.rdp-day_range_middle button {
+  background-color: #2563eb !important;
+  color: white !important;
+}
