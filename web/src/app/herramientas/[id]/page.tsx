@@ -1,9 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { DayPicker, DateRange } from "react-day-picker";
+import { es } from "react-day-picker/locale";
+import "react-day-picker/style.css";
+import { createClient } from "@/lib/supabase";
 
 interface Foto {
   id: string;
@@ -33,6 +37,12 @@ interface Valoracion {
   autor: { nombre: string; apellidos: string } | null;
 }
 
+interface Descuento {
+  id: string;
+  dias_minimos: number;
+  porcentaje: number;
+}
+
 interface Herramienta {
   id: string;
   nombre: string;
@@ -47,25 +57,44 @@ interface Herramienta {
   descuentos: Descuento[];
 }
 
-interface Descuento {
-  id: string;
-  dias_minimos: number;
-  porcentaje: number;
-}
-
 export default function DetalleHerramientaPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const [herramienta, setHerramienta] = useState<Herramienta | null>(null);
   const [loading, setLoading] = useState(true);
   const [fotoActiva, setFotoActiva] = useState<string | null>(null);
+  const [usuarioId, setUsuarioId] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+
+  // Calendario
+  const [fechasOcupadas, setFechasOcupadas] = useState<Date[]>([]);
+  const [rango, setRango] = useState<DateRange | undefined>();
+  const [enviando, setEnviando] = useState(false);
+  const [errorAlquiler, setErrorAlquiler] = useState("");
+  const [exito, setExito] = useState(false);
 
   useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUsuarioId(session?.user?.id ?? null);
+      setToken(session?.access_token ?? null);
+    });
+
     fetch(`/api/herramientas/${id}`)
       .then((r) => r.json())
       .then((data) => {
         setHerramienta(data);
         setFotoActiva(data.fotos?.[0]?.url ?? null);
         setLoading(false);
+      });
+
+    fetch(`/api/herramientas/${id}/disponibilidad`)
+      .then((r) => r.json())
+      .then((data) => {
+        const fechas = (data.fechasOcupadas ?? []).map(
+          (f: string) => new Date(f),
+        );
+        setFechasOcupadas(fechas);
       });
   }, [id]);
 
@@ -79,6 +108,61 @@ export default function DetalleHerramientaPage() {
           herramienta.valoraciones.length
         ).toFixed(1)
       : null;
+
+  // Calcular precio estimado según rango seleccionado
+  function calcularPrecio() {
+    if (!rango?.from || !rango?.to || !herramienta) return null;
+
+    const dias = Math.ceil(
+      (rango.to.getTime() - rango.from.getTime()) / (1000 * 60 * 60 * 24),
+    );
+
+    if (dias <= 0) return null;
+
+    const precioDia = herramienta.precio_dia;
+    const comision = 0.2; // referencial, el cálculo real es en servidor
+
+    // Buscar mejor descuento aplicable
+    const descuento = herramienta.descuentos
+      .filter((d) => d.dias_minimos <= dias)
+      .sort((a, b) => b.dias_minimos - a.dias_minimos)[0];
+
+    const porcentaje = descuento ? descuento.porcentaje : 0;
+    const precioVendedor = precioDia * (1 - porcentaje / 100) * dias;
+    const precioFinal = precioVendedor * (1 + comision);
+
+    return { dias, porcentaje, precioFinal: precioFinal.toFixed(2) };
+  }
+
+  const resumen = calcularPrecio();
+
+  async function handleAlquilar() {
+    if (!rango?.from || !rango?.to || !token) return;
+    setEnviando(true);
+    setErrorAlquiler("");
+
+    const fecha_inicio = rango.from.toISOString().split("T")[0];
+    const fecha_fin = rango.to.toISOString().split("T")[0];
+
+    const res = await fetch("/api/alquileres", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ herramienta_id: id, fecha_inicio, fecha_fin }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      setErrorAlquiler(data.error);
+    } else {
+      setExito(true);
+    }
+
+    setEnviando(false);
+  }
 
   return (
     <main className="max-w-5xl mx-auto px-4 py-8">
@@ -162,25 +246,109 @@ export default function DetalleHerramientaPage() {
               )}
             </div>
           )}
-
-          {/* Botón alquiler */}
-          {herramienta.disponible ? (
-            <button
-              disabled
-              className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold opacity-50 cursor-not-allowed"
-            >
-              Alquilar (próximamente)
-            </button>
-          ) : (
-            <button
-              disabled
-              className="w-full bg-gray-300 text-gray-500 py-3 rounded-lg font-semibold cursor-not-allowed"
-            >
-              No disponible
-            </button>
-          )}
         </div>
       </div>
+
+      {/* Sección de alquiler */}
+      {herramienta.disponible && (
+        <div className="mt-10 border rounded-lg p-6">
+          <h2 className="text-xl font-bold mb-4">Solicitar alquiler</h2>
+
+          {exito ? (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <p className="text-green-700 font-semibold">
+                ¡Solicitud enviada correctamente!
+              </p>
+              <p className="text-green-600 text-sm mt-1">
+                El vendedor recibirá tu solicitud y la confirmará en breve.
+              </p>
+              <Link
+                href="/alquileres/mis-alquileres"
+                className="text-blue-600 text-sm hover:underline mt-2 block"
+              >
+                Ver mis alquileres →
+              </Link>
+            </div>
+          ) : !usuarioId ? (
+            <div>
+              <p className="text-gray-600 mb-3">
+                Debes iniciar sesión para alquilar esta herramienta.
+              </p>
+              <button
+                onClick={() =>
+                  router.push(`/login?redirect=/herramientas/${id}`)
+                }
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              >
+                Iniciar sesión
+              </button>
+            </div>
+          ) : usuarioId === herramienta.vendedor?.id ? (
+            <p className="text-gray-500 text-sm">
+              No puedes alquilar tu propia herramienta.
+            </p>
+          ) : (
+            <>
+              <p className="text-sm text-gray-500 mb-4">
+                Selecciona las fechas en el calendario. Los días en rojo no
+                están disponibles.
+              </p>
+              <DayPicker
+                mode="range"
+                selected={rango}
+                onSelect={setRango}
+                locale={es}
+                disabled={[{ before: new Date() }, ...fechasOcupadas]}
+                modifiers={{ ocupado: fechasOcupadas }}
+                modifiersClassNames={{ ocupado: "rdp-day--ocupado" }}
+                showOutsideDays
+              />
+
+              {resumen && (
+                <div className="mt-4 bg-blue-50 rounded-lg p-4">
+                  <p className="text-sm text-gray-600">
+                    <strong>{resumen.dias} días</strong>
+                    {resumen.porcentaje > 0 && (
+                      <span className="text-green-600 ml-2">
+                        ({resumen.porcentaje}% descuento aplicado)
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-2xl font-bold text-blue-600 mt-1">
+                    {resumen.precioFinal}€ total
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Precio final con comisión incluida
+                  </p>
+                </div>
+              )}
+
+              {errorAlquiler && (
+                <p className="text-red-500 text-sm mt-3">{errorAlquiler}</p>
+              )}
+
+              <button
+                onClick={handleAlquilar}
+                disabled={!rango?.from || !rango?.to || enviando}
+                className="mt-4 w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50"
+              >
+                {enviando ? "Enviando solicitud..." : "Confirmar solicitud"}
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
+      {!herramienta.disponible && (
+        <div className="mt-10">
+          <button
+            disabled
+            className="w-full bg-gray-300 text-gray-500 py-3 rounded-lg font-semibold cursor-not-allowed"
+          >
+            No disponible
+          </button>
+        </div>
+      )}
 
       {/* Descuentos */}
       {herramienta.descuentos.length > 0 && (
