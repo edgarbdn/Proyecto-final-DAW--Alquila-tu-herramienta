@@ -1,5 +1,3 @@
-//Importo de node_modules/@supabase/ssr la funcion createBrowserClient y createServerClient
-
 import { createBrowserClient, createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
 
