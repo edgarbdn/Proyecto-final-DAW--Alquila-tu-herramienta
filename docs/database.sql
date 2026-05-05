@@ -56,7 +56,8 @@ CREATE TABLE "categorias" (
   "id" uuid PRIMARY KEY DEFAULT (gen_random_uuid()),
   "nombre" varchar UNIQUE NOT NULL,
   "descripcion" varchar,
-  "icono_url" varchar,
+  "icono" varchar,
+  "activo" boolean DEFAULT true,
   "created_at" timestamp DEFAULT (now())
 );
 
@@ -73,7 +74,7 @@ CREATE TABLE "herramientas" (
 
 CREATE TABLE "fotos" (
   "id" uuid PRIMARY KEY DEFAULT (gen_random_uuid()),
-  "herramienta_id" uuid NOT NULL REFERENCES herramientas(id),
+  "herramienta_id" uuid NOT NULL REFERENCES herramientas(id) ON DELETE CASCADE,
   "url" varchar NOT NULL,
   "es_principal" boolean DEFAULT false,
   "orden" int DEFAULT 0,
@@ -131,3 +132,12 @@ CREATE TABLE "notificaciones" (
   "leida" boolean DEFAULT false,
   "created_at" timestamp DEFAULT (now())
 );
+
+CREATE TABLE "configuracion" (
+  "clave" varchar PRIMARY KEY,
+  "valor" varchar NOT NULL,
+  "descripcion" varchar
+);
+
+INSERT INTO configuracion (clave, valor, descripcion) 
+VALUES ('comision', '0.20', 'Comisión de la plataforma sobre el precio del vendedor');
