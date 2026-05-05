@@ -56,7 +56,8 @@ export async function POST(request: NextRequest) {
     .select("id")
     .eq("herramienta_id", herramienta_id)
     .in("estado", ["confirmado", "activo"])
-    .or(`fecha_inicio.lte.${fecha_fin},fecha_fin.gte.${fecha_inicio}`);
+    .lte("fecha_inicio", fecha_fin)
+    .gte("fecha_fin", fecha_inicio);
 
   if (solapados && solapados.length > 0) {
     return NextResponse.json(
