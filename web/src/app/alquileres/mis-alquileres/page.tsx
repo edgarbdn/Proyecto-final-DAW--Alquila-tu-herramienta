@@ -60,6 +60,28 @@ export default function MisAlquileresPage() {
     setLoading(false);
   }
 
+  async function handlePagar(alquilerId: string) {
+    const supabase = createClient();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session) return;
+
+    const res = await fetch("/api/pagos/checkout", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ alquiler_id: alquilerId }),
+    });
+
+    const data = await res.json();
+    if (data.url) {
+      window.location.href = data.url;
+    }
+  }
+
   return (
     <main className="max-w-4xl mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold text-gray-800 mb-6">Mis alquileres</h1>
@@ -112,6 +134,15 @@ export default function MisAlquileresPage() {
                 >
                   Ver herramienta →
                 </Link>
+              )}
+
+              {a.estado === "confirmado" && (
+                <button
+                  onClick={() => handlePagar(a.id)}
+                  className="mt-3 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm font-semibold"
+                >
+                  Pagar ahora
+                </button>
               )}
             </div>
           ))}
