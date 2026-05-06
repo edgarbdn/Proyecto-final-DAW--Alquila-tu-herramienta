@@ -15,8 +15,9 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  // Si intentas ir a /perfil sin sesión, redirige a /login
-  if (!session && path.startsWith("/perfil")) {
+  // Rutas protegidas para usuarios no autenticados
+  const rutasProtegidas = ["/perfil", "/herramientas/nueva", "/alquileres"];
+  if (!session && rutasProtegidas.some((r) => path.startsWith(r))) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
