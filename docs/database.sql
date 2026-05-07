@@ -63,7 +63,7 @@ CREATE TABLE "categorias" (
 
 CREATE TABLE "herramientas" (
   "id" uuid PRIMARY KEY DEFAULT (gen_random_uuid()),
-  "vendedor_id" uuid NOT NULL REFERENCES users(id),
+  "vendedor_id" uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   "categoria_id" uuid NOT NULL REFERENCES categorias(id),
   "nombre" varchar NOT NULL,
   "descripcion" text,
@@ -83,8 +83,8 @@ CREATE TABLE "fotos" (
 
 CREATE TABLE "alquileres" (
   "id" uuid PRIMARY KEY DEFAULT (gen_random_uuid()),
-  "herramienta_id" uuid NOT NULL REFERENCES herramientas(id),
-  "cliente_id" uuid NOT NULL REFERENCES users(id),
+  "herramienta_id" uuid NOT NULL REFERENCES herramientas(id) ON DELETE CASCADE,
+  "cliente_id" uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   "fecha_inicio" date NOT NULL,
   "fecha_fin" date NOT NULL,
   "dias" int NOT NULL,
@@ -97,9 +97,9 @@ CREATE TABLE "alquileres" (
 
 CREATE TABLE "valoraciones" (
   "id" uuid PRIMARY KEY DEFAULT (gen_random_uuid()),
-  "alquiler_id" uuid NOT NULL REFERENCES alquileres(id),
-  "autor_id" uuid NOT NULL REFERENCES users(id),
-  "destinatario_id" uuid NOT NULL REFERENCES users(id),
+  "alquiler_id" uuid NOT NULL REFERENCES alquileres(id) ON DELETE CASCADE,
+  "autor_id" uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  "destinatario_id" uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   "nota" int NOT NULL CHECK (nota >= 1 AND nota <= 5),
   "comentario" text,
   "created_at" timestamp DEFAULT (now())
@@ -107,7 +107,7 @@ CREATE TABLE "valoraciones" (
 
 CREATE TABLE "pagos" (
   "id" uuid PRIMARY KEY DEFAULT (gen_random_uuid()),
-  "alquiler_id" uuid NOT NULL REFERENCES alquileres(id),
+  "alquiler_id" uuid NOT NULL REFERENCES alquileres(id) ON DELETE CASCADE,
   "importe" decimal NOT NULL,
   "estado" estado_pago NOT NULL DEFAULT 'pendiente',
   "metodo" varchar,
@@ -117,7 +117,7 @@ CREATE TABLE "pagos" (
 
 CREATE TABLE "descuentos" (
   "id" uuid PRIMARY KEY DEFAULT (gen_random_uuid()),
-  "herramienta_id" uuid NOT NULL REFERENCES herramientas(id),
+  "herramienta_id" uuid NOT NULL REFERENCES herramientas(id) ON DELETE CASCADE,
   "dias_minimos" int NOT NULL,
   "porcentaje" decimal NOT NULL,
   "activo" boolean DEFAULT true,
@@ -126,7 +126,7 @@ CREATE TABLE "descuentos" (
 
 CREATE TABLE "notificaciones" (
   "id" uuid PRIMARY KEY DEFAULT (gen_random_uuid()),
-  "usuario_id" uuid NOT NULL REFERENCES users(id),
+  "usuario_id" uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   "titulo" varchar NOT NULL,
   "mensaje" text NOT NULL,
   "leida" boolean DEFAULT false,
