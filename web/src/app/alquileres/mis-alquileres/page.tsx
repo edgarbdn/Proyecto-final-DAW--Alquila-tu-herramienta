@@ -11,7 +11,7 @@ type Alquiler = {
   dias: number;
   precio_final: number;
   estado: string;
-  herramientas: { nombre: string; id: string } | null;
+  herramientas: { nombre: string; id: string; vendedor_id: string } | null;
 };
 
 const estadoStyles: Record<string, string> = {
@@ -26,6 +26,10 @@ export default function MisAlquileresPage() {
   const [alquileres, setAlquileres] = useState<Alquiler[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [valorandoId, setValorandoId] = useState<string | null>(null);
+  const [nota, setNota] = useState(5);
+  const [comentario, setComentario] = useState("");
+  const [valorados, setValorados] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadAlquileres();
@@ -45,7 +49,7 @@ export default function MisAlquileresPage() {
       .select(
         `
         id, fecha_inicio, fecha_fin, dias, precio_final, estado,
-        herramientas(id, nombre)
+        herramientas(id, nombre, vendedor_id)
       `,
       )
       .eq("cliente_id", user.id)
@@ -55,6 +59,23 @@ export default function MisAlquileresPage() {
       setError("Error al cargar los alquileres");
     } else {
       setAlquileres(data ?? []);
+
+      // Comprobar cuáles ya han sido valorados
+      const finalizados = (data ?? [])
+        .filter((a) => a.estado === "finalizado")
+        .map((a) => a.id);
+
+      if (finalizados.length > 0) {
+        const { data: vals } = await supabase
+          .from("valoraciones")
+          .select("alquiler_id")
+          .eq("autor_id", user.id)
+          .in("alquiler_id", finalizados);
+
+        if (vals) {
+          setValorados(new Set(vals.map((v) => v.alquiler_id)));
+        }
+      }
     }
 
     setLoading(false);
@@ -79,6 +100,42 @@ export default function MisAlquileresPage() {
     const data = await res.json();
     if (data.url) {
       window.location.href = data.url;
+    }
+  }
+
+  async function handleValorar(alquiler: Alquiler) {
+    const supabase = createClient();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session) return;
+
+    const vendedorId = (
+      alquiler.herramientas as unknown as { vendedor_id: string }
+    )?.vendedor_id;
+
+    const res = await fetch("/api/valoraciones", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        alquiler_id: alquiler.id,
+        destinatario_id: vendedorId,
+        nota,
+        comentario,
+      }),
+    });
+
+    if (res.ok) {
+      setValorados((prev) => new Set([...prev, alquiler.id]));
+      setValorandoId(null);
+      setNota(5);
+      setComentario("");
+    } else {
+      const data = await res.json();
+      setError(data.error);
     }
   }
 
@@ -127,6 +184,7 @@ export default function MisAlquileresPage() {
                   {a.estado.charAt(0).toUpperCase() + a.estado.slice(1)}
                 </span>
               </div>
+
               {a.herramientas?.id && (
                 <Link
                   href={`/herramientas/${a.herramientas.id}`}
@@ -143,6 +201,63 @@ export default function MisAlquileresPage() {
                 >
                   Pagar ahora
                 </button>
+              )}
+
+              {a.estado === "finalizado" && !valorados.has(a.id) && (
+                <>
+                  {valorandoId === a.id ? (
+                    <div className="mt-4 border-t pt-4">
+                      <p className="text-sm font-semibold text-gray-700 mb-2">
+                        Valorar al vendedor
+                      </p>
+                      <div className="flex gap-2 mb-3">
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <button
+                            key={n}
+                            onClick={() => setNota(n)}
+                            className={`text-2xl ${n <= nota ? "text-yellow-400" : "text-gray-300"}`}
+                          >
+                            ★
+                          </button>
+                        ))}
+                      </div>
+                      <textarea
+                        value={comentario}
+                        onChange={(e) => setComentario(e.target.value)}
+                        placeholder="Escribe un comentario (opcional)"
+                        className="w-full border rounded p-2 text-sm text-gray-700 mb-3"
+                        rows={3}
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleValorar(a)}
+                          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm font-semibold"
+                        >
+                          Enviar valoración
+                        </button>
+                        <button
+                          onClick={() => setValorandoId(null)}
+                          className="text-gray-500 text-sm hover:text-gray-700"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setValorandoId(a.id)}
+                      className="mt-3 border border-blue-600 text-blue-600 px-4 py-2 rounded hover:bg-blue-50 text-sm font-semibold"
+                    >
+                      Valorar
+                    </button>
+                  )}
+                </>
+              )}
+
+              {a.estado === "finalizado" && valorados.has(a.id) && (
+                <p className="mt-3 text-sm text-green-600 font-medium">
+                  Gracias por tu valoración!
+                </p>
               )}
             </div>
           ))}
