@@ -28,10 +28,12 @@ export default function Navbar() {
       if (data) setNombre(data.nombre);
     });
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setLoggedIn(!!session);
-      if (!session) setNombre(null);
-    });
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setLoggedIn(!!session);
+        if (!session) setNombre(null);
+      },
+    );
 
     return () => listener.subscription.unsubscribe();
   }, []);
@@ -51,20 +53,41 @@ export default function Navbar() {
       <div className="flex items-center gap-4">
         {loggedIn ? (
           <>
-            <Link href="/herramientas" className="text-sm text-gray-600 hover:text-gray-900">
+            <Link
+              href="/herramientas"
+              className="text-sm text-gray-600 hover:text-gray-900"
+            >
               Herramientas
             </Link>
-            <Link href="/herramientas/nueva" className="text-sm text-gray-600 hover:text-gray-900">
+            <Link
+              href="/herramientas/nueva"
+              className="text-sm text-gray-600 hover:text-gray-900"
+            >
               Publicar
             </Link>
-            <Link href="/alquileres/solicitudes" className="text-sm text-gray-600 hover:text-gray-900">
+            <Link
+              href="/alquileres/solicitudes"
+              className="text-sm text-gray-600 hover:text-gray-900"
+            >
               Solicitudes
             </Link>
-            <Link href="/alquileres/mis-alquileres" className="text-sm text-gray-600 hover:text-gray-900">
+            <Link
+              href="/alquileres/mis-alquileres"
+              className="text-sm text-gray-600 hover:text-gray-900"
+            >
               Mis alquileres
             </Link>
+            <Link
+              href="/pagos"
+              className="text-sm text-gray-600 hover:text-gray-900"
+            >
+              Pagos
+            </Link>
             <NotificationBell />
-            <Link href="/perfil" className="text-sm text-gray-600 hover:text-gray-900">
+            <Link
+              href="/perfil"
+              className="text-sm text-gray-600 hover:text-gray-900"
+            >
               {nombre ?? "Perfil"}
             </Link>
             <button
@@ -76,13 +99,22 @@ export default function Navbar() {
           </>
         ) : (
           <>
-            <Link href="/herramientas" className="text-sm text-gray-600 hover:text-gray-900">
+            <Link
+              href="/herramientas"
+              className="text-sm text-gray-600 hover:text-gray-900"
+            >
               Herramientas
             </Link>
-            <Link href="/login" className="text-sm text-blue-600 hover:text-blue-800 font-semibold">
+            <Link
+              href="/login"
+              className="text-sm text-blue-600 hover:text-blue-800 font-semibold"
+            >
               Iniciar sesión
             </Link>
-            <Link href="/register" className="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">
+            <Link
+              href="/register"
+              className="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+            >
               Registrarse
             </Link>
           </>
