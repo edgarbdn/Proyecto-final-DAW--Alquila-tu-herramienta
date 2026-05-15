@@ -109,8 +109,8 @@ export default function Navbar() {
         {/* Buscador — visible en md+ */}
         <div ref={searchRef} className="relative flex-1 max-w-xl mx-auto hidden md:block">
           <form onSubmit={handleSubmit}>
-            <div className="flex items-center bg-gray-100 rounded-full px-4 py-2 gap-2">
-              <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="flex items-center bg-white border-2 border-[#F97316] rounded-full px-4 py-2.5 gap-2">
+              <svg className="w-4 h-4 text-[#F97316] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               <input
@@ -118,7 +118,7 @@ export default function Navbar() {
                 value={busqueda}
                 onChange={(e) => handleBusqueda(e.target.value)}
                 placeholder="Busca herramientas..."
-                className="bg-transparent flex-1 text-sm text-gray-700 outline-none placeholder-gray-400"
+                className="bg-transparent flex-1 text-sm font-bold text-gray-900 outline-none placeholder-gray-500"
               />
             </div>
           </form>
