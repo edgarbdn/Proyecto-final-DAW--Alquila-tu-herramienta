@@ -47,7 +47,7 @@ export default function ComoFunciona() {
 
   return (
     <section className="bg-white py-16 px-6">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-[1320px] mx-auto">
         {/* Título */}
         <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 text-center mb-2">
           ¿Cómo funciona?

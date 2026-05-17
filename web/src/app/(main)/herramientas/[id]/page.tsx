@@ -9,52 +9,28 @@ import { es } from "react-day-picker/locale";
 import "react-day-picker/style.css";
 import { createClient } from "@/lib/supabase";
 
-interface Foto {
-  id: string;
-  url: string;
-  es_principal: boolean;
-  orden: number;
-}
-
-interface Vendedor {
-  id: string;
-  nombre: string;
-  apellidos: string;
-  ciudad: string | null;
-  direccion_publica: string | null;
-}
-
-interface Categoria {
-  id: string;
-  nombre: string;
-}
-
-interface Valoracion {
-  id: string;
-  nota: number;
-  comentario: string | null;
-  created_at: string;
-  autor: { nombre: string; apellidos: string } | null;
-}
-
-interface Descuento {
-  id: string;
-  dias_minimos: number;
-  porcentaje: number;
-}
-
+interface Foto { id: string; url: string; es_principal: boolean; orden: number; }
+interface Vendedor { id: string; nombre: string; apellidos: string; ciudad: string | null; direccion_publica: string | null; }
+interface Categoria { id: string; nombre: string; }
+interface Valoracion { id: string; nota: number; comentario: string | null; created_at: string; autor: { nombre: string; apellidos: string } | null; }
+interface Descuento { id: string; dias_minimos: number; porcentaje: number; }
 interface Herramienta {
-  id: string;
-  nombre: string;
-  descripcion: string;
-  precio_dia: number;
-  precio_dia_publico: number;
-  disponible: boolean;
-  vendedor: Vendedor | null;
-  categoria: Categoria;
-  fotos: Foto[];
-  valoraciones: Valoracion[];
-  descuentos: Descuento[];
+  id: string; nombre: string; descripcion: string; precio_dia: number; precio_dia_publico: number;
+  disponible: boolean; vendedor: Vendedor | null; categoria: Categoria;
+  fotos: Foto[]; valoraciones: Valoracion[]; descuentos: Descuento[];
+}
+
+function Estrellas({ nota, size = "sm" }: { nota: number; size?: "sm" | "md" }) {
+  const cls = size === "md" ? "w-5 h-5" : "w-4 h-4";
+  return (
+    <div className="flex gap-0.5">
+      {[1,2,3,4,5].map((i) => (
+        <svg key={i} className={`${cls} ${i <= nota ? "text-yellow-400" : "text-gray-200"}`} fill="currentColor" viewBox="0 0 20 20">
+          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+        </svg>
+      ))}
+    </div>
+  );
 }
 
 export default function DetalleHerramientaPage() {
@@ -65,8 +41,6 @@ export default function DetalleHerramientaPage() {
   const [fotoActiva, setFotoActiva] = useState<string | null>(null);
   const [usuarioId, setUsuarioId] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
-
-  // Calendario
   const [fechasOcupadas, setFechasOcupadas] = useState<Date[]>([]);
   const [rango, setRango] = useState<DateRange | undefined>();
   const [enviando, setEnviando] = useState(false);
@@ -79,58 +53,52 @@ export default function DetalleHerramientaPage() {
       setUsuarioId(session?.user?.id ?? null);
       setToken(session?.access_token ?? null);
     });
-
-    fetch(`/api/herramientas/${id}`)
-      .then((r) => r.json())
-      .then((data) => {
-        setHerramienta(data);
-        setFotoActiva(data.fotos?.[0]?.url ?? null);
-        setLoading(false);
+    fetch(`/api/herramientas/${id}`).then((r) => r.json()).then((data) => {
+      if (data.error) { setLoading(false); return; }
+      setHerramienta({
+        ...data,
+        fotos: data.fotos ?? [],
+        valoraciones: data.valoraciones ?? [],
+        descuentos: data.descuentos ?? [],
       });
-
-    fetch(`/api/herramientas/${id}/disponibilidad`)
-      .then((r) => r.json())
-      .then((data) => {
-        const fechas = (data.fechasOcupadas ?? []).map(
-          (f: string) => new Date(f),
-        );
-        setFechasOcupadas(fechas);
-      });
+      setFotoActiva(data.fotos?.find((f: Foto) => f.es_principal)?.url ?? data.fotos?.[0]?.url ?? null);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+    fetch(`/api/herramientas/${id}/disponibilidad`).then((r) => r.json()).then((data) => {
+      setFechasOcupadas((data.fechasOcupadas ?? []).map((f: string) => new Date(f)));
+    });
   }, [id]);
 
-  if (loading) return <p className="p-8">Cargando...</p>;
-  if (!herramienta) return <p className="p-8">Herramienta no encontrada.</p>;
+  if (loading) return (
+    <main className="max-w-[1320px] mx-auto px-4 py-8 space-y-4">
+      <div className="h-8 w-32 bg-gray-100 rounded-xl animate-pulse" />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="h-80 bg-gray-100 rounded-2xl animate-pulse" />
+        <div className="space-y-4">
+          {[...Array(4)].map((_, i) => <div key={i} className="h-8 bg-gray-100 rounded-xl animate-pulse" />)}
+        </div>
+      </div>
+    </main>
+  );
 
-  const mediaNota =
-    herramienta.valoraciones.length > 0
-      ? (
-          herramienta.valoraciones.reduce((acc, v) => acc + v.nota, 0) /
-          herramienta.valoraciones.length
-        ).toFixed(1)
-      : null;
+  if (!herramienta) return (
+    <main className="max-w-[1320px] mx-auto px-4 py-8">
+      <p className="text-gray-500">Herramienta no encontrada.</p>
+    </main>
+  );
 
-  // Calcular precio estimado según rango seleccionado
+  const mediaNota = herramienta.valoraciones.length > 0
+    ? (herramienta.valoraciones.reduce((acc, v) => acc + v.nota, 0) / herramienta.valoraciones.length).toFixed(1)
+    : null;
+
   function calcularPrecio() {
     if (!rango?.from || !rango?.to || !herramienta) return null;
-
-    const dias = Math.ceil(
-      (rango.to.getTime() - rango.from.getTime()) / (1000 * 60 * 60 * 24),
-    );
-
+    const dias = Math.ceil((rango.to.getTime() - rango.from.getTime()) / (1000 * 60 * 60 * 24));
     if (dias <= 0) return null;
-
-    const precioDia = herramienta.precio_dia;
-    const comision = 0.2; // referencial, el cálculo real es en servidor
-
-    // Buscar mejor descuento aplicable
-    const descuento = herramienta.descuentos
-      .filter((d) => d.dias_minimos <= dias)
-      .sort((a, b) => b.dias_minimos - a.dias_minimos)[0];
-
+    const descuento = herramienta.descuentos.filter((d) => d.dias_minimos <= dias).sort((a, b) => b.dias_minimos - a.dias_minimos)[0];
     const porcentaje = descuento ? descuento.porcentaje : 0;
-    const precioVendedor = precioDia * (1 - porcentaje / 100) * dias;
-    const precioFinal = precioVendedor * (1 + comision);
-
+    const precioVendedor = herramienta.precio_dia * (1 - porcentaje / 100) * dias;
+    const precioFinal = precioVendedor * 1.2;
     return { dias, porcentaje, precioFinal: precioFinal.toFixed(2) };
   }
 
@@ -140,67 +108,58 @@ export default function DetalleHerramientaPage() {
     if (!rango?.from || !rango?.to || !token) return;
     setEnviando(true);
     setErrorAlquiler("");
+    const toLocalDateString = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
-    const fecha_inicio = rango.from.toISOString().split("T")[0];
-    const fecha_fin = rango.to.toISOString().split("T")[0];
-
+    const fecha_inicio = toLocalDateString(rango.from);
+    const fecha_fin = toLocalDateString(rango.to);
     const res = await fetch("/api/alquileres", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ herramienta_id: id, fecha_inicio, fecha_fin }),
     });
-
     const data = await res.json();
-
-    if (!res.ok) {
-      setErrorAlquiler(data.error);
-    } else {
-      setExito(true);
-    }
-
+    if (!res.ok) setErrorAlquiler(data.error);
+    else setExito(true);
     setEnviando(false);
   }
 
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+
   return (
-    <main className="max-w-5xl mx-auto px-4 py-8">
-      <Link
-        href="/herramientas"
-        className="text-sm text-blue-600 hover:underline mb-4 block"
-      >
-        ← Volver al catálogo
+    <main className="max-w-[1320px] mx-auto px-4 py-8">
+      <Link href="/herramientas" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#F97316] transition-colors mb-6">
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+        </svg>
+        Volver al catálogo
       </Link>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Galería */}
-        <div>
-          <div className="relative h-80 bg-gray-100 rounded-lg overflow-hidden mb-3">
+        <div className="space-y-3">
+          <div className="relative h-80 sm:h-96 bg-gray-100 rounded-2xl overflow-hidden">
             {fotoActiva ? (
-              <Image
-                src={fotoActiva}
-                alt={herramienta.nombre}
-                fill
-                className="object-cover"
-              />
+              <Image src={fotoActiva} alt={herramienta.nombre} fill className="object-cover" />
             ) : (
-              <div className="flex items-center justify-center h-full text-gray-400">
-                Sin foto
+              <div className="flex items-center justify-center h-full text-gray-300">
+                <svg className="w-16 h-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5z" />
+                </svg>
+              </div>
+            )}
+            {!herramienta.disponible && (
+              <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                <span className="bg-white text-gray-700 font-semibold text-sm px-4 py-2 rounded-full">No disponible</span>
               </div>
             )}
           </div>
           {herramienta.fotos.length > 1 && (
-            <div className="flex gap-2 overflow-x-auto">
+            <div className="flex gap-2 overflow-x-auto pb-1">
               {herramienta.fotos.map((f) => (
-                <button
-                  key={f.id}
-                  onClick={() => setFotoActiva(f.url)}
-                  className={`relative h-16 w-16 flex-shrink-0 rounded overflow-hidden border-2 ${
-                    fotoActiva === f.url
-                      ? "border-blue-600"
-                      : "border-transparent"
-                  }`}
+                <button key={f.id} onClick={() => setFotoActiva(f.url)}
+                  className={`relative h-16 w-16 flex-shrink-0 rounded-xl overflow-hidden border-2 transition-colors ${fotoActiva === f.url ? "border-[#F97316]" : "border-transparent"}`}
                 >
                   <Image src={f.url} alt="" fill className="object-cover" />
                 </button>
@@ -210,192 +169,153 @@ export default function DetalleHerramientaPage() {
         </div>
 
         {/* Info */}
-        <div>
-          <p className="text-sm text-gray-400 mb-1">
-            {herramienta.categoria.nombre}
-          </p>
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">
-            {herramienta.nombre}
-          </h1>
-          <p className="text-3xl font-bold text-blue-600 mb-4">
-            {herramienta.precio_dia_publico}€/día
-          </p>
-          <p className="text-gray-600 mb-6">{herramienta.descripcion}</p>
+        <div className="space-y-5">
+          {/* Categoría y nombre */}
+          <div>
+            <span className="text-xs font-semibold text-[#F97316] bg-orange-50 px-2.5 py-1 rounded-full">{herramienta.categoria.nombre}</span>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mt-2">{herramienta.nombre}</h1>
+            <div className="flex items-center gap-3 mt-2">
+              <span className="text-3xl font-bold text-[#F97316]">{herramienta.precio_dia_publico}€<span className="text-base font-normal text-gray-400">/día</span></span>
+              {mediaNota && (
+                <div className="flex items-center gap-1.5">
+                  <Estrellas nota={Math.round(parseFloat(mediaNota))} />
+                  <span className="text-sm text-gray-500">{mediaNota}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Descripción */}
+          <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-wrap">{herramienta.descripcion}</p>
 
           {/* Vendedor */}
           {herramienta.vendedor && (
-            <div className="bg-gray-50 rounded-lg p-4 mb-6">
-              <h2 className="font-semibold text-gray-700 mb-2">Vendedor</h2>
-              <p className="text-gray-800">
-                {herramienta.vendedor.nombre} {herramienta.vendedor.apellidos}
-              </p>
-              {herramienta.vendedor.ciudad && (
-                <p className="text-sm text-gray-500">
-                  {herramienta.vendedor.ciudad}
-                </p>
-              )}
-              {herramienta.vendedor.direccion_publica && (
-                <p className="text-sm text-gray-500">
-                  {herramienta.vendedor.direccion_publica}
-                </p>
-              )}
-              {mediaNota && (
-                <p className="text-sm text-yellow-500 mt-1">
-                  ★ {mediaNota} / 5
-                </p>
-              )}
+            <div className="bg-gray-50 rounded-2xl p-4 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-[#F97316] flex items-center justify-center text-white font-bold text-sm shrink-0">
+                {herramienta.vendedor.nombre[0]?.toUpperCase()}
+              </div>
+              <div>
+                <p className="font-semibold text-gray-900 text-sm">{herramienta.vendedor.nombre} {herramienta.vendedor.apellidos}</p>
+                {herramienta.vendedor.ciudad && <p className="text-xs text-gray-500">📍 {herramienta.vendedor.ciudad}</p>}
+                {herramienta.vendedor.direccion_publica && <p className="text-xs text-gray-400">{herramienta.vendedor.direccion_publica}</p>}
+              </div>
+            </div>
+          )}
+
+          {/* Descuentos */}
+          {herramienta.descuentos.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-gray-700">Descuentos por duración</p>
+              <div className="flex flex-wrap gap-2">
+                {herramienta.descuentos.map((d) => (
+                  <span key={d.id} className="text-xs font-semibold bg-green-50 text-green-700 px-3 py-1.5 rounded-full">
+                    +{d.dias_minimos} días → {d.porcentaje}% dto.
+                  </span>
+                ))}
+              </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Sección de alquiler */}
-      {herramienta.disponible && (
-        <div className="mt-10 border rounded-lg p-6">
-          <h2 className="text-xl font-bold mb-4">Solicitar alquiler</h2>
+      {/* Sección alquiler */}
+      <div className="mt-10">
+        {exito ? (
+          <div className="bg-green-50 border border-green-200 rounded-2xl p-6">
+            <p className="font-bold text-green-700 text-lg">¡Solicitud enviada!</p>
+            <p className="text-green-600 text-sm mt-1">El propietario recibirá tu solicitud y la confirmará en breve.</p>
+            <Link href="/mis-alquileres" className="inline-flex items-center gap-1.5 text-sm font-semibold text-green-700 hover:text-green-800 mt-3 transition-colors">
+              Ver mis alquileres →
+            </Link>
+          </div>
+        ) : !herramienta.disponible ? (
+          <div className="bg-gray-50 rounded-2xl p-6 text-center">
+            <p className="text-gray-500 font-semibold">Esta herramienta no está disponible actualmente</p>
+          </div>
+        ) : !usuarioId ? (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 text-center">
+            <p className="text-gray-600 mb-4">Inicia sesión para alquilar esta herramienta</p>
+            <button onClick={() => router.push(`/login?redirect=/herramientas/${id}`)}
+              className="bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold px-6 py-2.5 rounded-xl transition-colors"
+            >
+              Iniciar sesión
+            </button>
+          </div>
+        ) : usuarioId === herramienta.vendedor?.id ? (
+          <div className="bg-gray-50 rounded-2xl p-6 text-center">
+            <p className="text-gray-500 text-sm">No puedes alquilar tu propia herramienta</p>
+          </div>
+        ) : (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-1">Solicitar alquiler</h2>
+            <p className="text-sm text-gray-500 mb-5">Selecciona las fechas. Los días bloqueados ya están reservados.</p>
 
-          {exito ? (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <p className="text-green-700 font-semibold">
-                ¡Solicitud enviada correctamente!
-              </p>
-              <p className="text-green-600 text-sm mt-1">
-                El vendedor recibirá tu solicitud y la confirmará en breve.
-              </p>
-              <Link
-                href="/alquileres/mis-alquileres"
-                className="text-blue-600 text-sm hover:underline mt-2 block"
-              >
-                Ver mis alquileres →
-              </Link>
-            </div>
-          ) : !usuarioId ? (
-            <div>
-              <p className="text-gray-600 mb-3">
-                Debes iniciar sesión para alquilar esta herramienta.
-              </p>
-              <button
-                onClick={() =>
-                  router.push(`/login?redirect=/herramientas/${id}`)
-                }
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-              >
-                Iniciar sesión
-              </button>
-            </div>
-          ) : usuarioId === herramienta.vendedor?.id ? (
-            <p className="text-gray-500 text-sm">
-              No puedes alquilar tu propia herramienta.
-            </p>
-          ) : (
-            <>
-              <p className="text-sm text-gray-500 mb-4">
-                Selecciona las fechas en el calendario. Los días en rojo no
-                están disponibles.
-              </p>
+            <div className="flex flex-col lg:flex-row gap-8 items-start">
               <DayPicker
                 mode="range"
                 selected={rango}
                 onSelect={setRango}
                 locale={es}
-                disabled={[{ before: new Date() }, ...fechasOcupadas]}
+                disabled={[{ before: hoy }, ...fechasOcupadas]}
                 modifiers={{ ocupado: fechasOcupadas }}
                 modifiersClassNames={{ ocupado: "rdp-day--ocupado" }}
                 showOutsideDays
               />
 
-              {resumen && (
-                <div className="mt-4 bg-blue-50 rounded-lg p-4">
-                  <p className="text-sm text-gray-600">
-                    <strong>{resumen.dias} días</strong>
+              <div className="flex-1 w-full space-y-4">
+                {resumen ? (
+                  <div className="bg-orange-50 rounded-2xl p-5 space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Duración</span>
+                      <span className="font-semibold text-gray-900">{resumen.dias} días</span>
+                    </div>
                     {resumen.porcentaje > 0 && (
-                      <span className="text-green-600 ml-2">
-                        ({resumen.porcentaje}% descuento aplicado)
-                      </span>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Descuento</span>
+                        <span className="font-semibold text-green-600">-{resumen.porcentaje}%</span>
+                      </div>
                     )}
-                  </p>
-                  <p className="text-2xl font-bold text-blue-600 mt-1">
-                    {resumen.precioFinal}€ total
-                  </p>
-                  <p className="text-xs text-gray-400 mt-1">
-                    Precio final con comisión incluida
-                  </p>
-                </div>
-              )}
+                    <div className="border-t border-orange-100 pt-2 flex justify-between">
+                      <span className="text-gray-700 font-semibold">Total</span>
+                      <span className="text-2xl font-bold text-[#F97316]">{resumen.precioFinal}€</span>
+                    </div>
+                    <p className="text-xs text-gray-400">Comisión incluida</p>
+                  </div>
+                ) : (
+                  <div className="bg-gray-50 rounded-2xl p-5 text-center">
+                    <p className="text-sm text-gray-400">Selecciona fechas para ver el precio</p>
+                  </div>
+                )}
 
-              {errorAlquiler && (
-                <p className="text-red-500 text-sm mt-3">{errorAlquiler}</p>
-              )}
+                {errorAlquiler && <p className="text-red-500 text-sm bg-red-50 px-4 py-3 rounded-xl">{errorAlquiler}</p>}
 
-              <button
-                onClick={handleAlquilar}
-                disabled={!rango?.from || !rango?.to || enviando}
-                className="mt-4 w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50"
-              >
-                {enviando ? "Enviando solicitud..." : "Confirmar solicitud"}
-              </button>
-            </>
-          )}
-        </div>
-      )}
-
-      {!herramienta.disponible && (
-        <div className="mt-10">
-          <button
-            disabled
-            className="w-full bg-gray-300 text-gray-500 py-3 rounded-lg font-semibold cursor-not-allowed"
-          >
-            No disponible
-          </button>
-        </div>
-      )}
-
-      {/* Descuentos */}
-      {herramienta.descuentos.length > 0 && (
-        <div className="mt-10">
-          <h2 className="text-xl font-bold mb-4">Descuentos por días</h2>
-          <div className="space-y-2">
-            {herramienta.descuentos.map((d) => (
-              <div
-                key={d.id}
-                className="flex items-center justify-between border rounded-lg px-4 py-3 bg-green-50"
-              >
-                <p className="text-sm text-gray-700">
-                  A partir de <strong>{d.dias_minimos} días</strong>
-                </p>
-                <span className="text-green-600 font-bold">
-                  {d.porcentaje}% dto.
-                </span>
+                <button onClick={handleAlquilar} disabled={!rango?.from || !rango?.to || enviando}
+                  className="w-full bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold py-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {enviando ? "Enviando solicitud..." : "Confirmar solicitud"}
+                </button>
               </div>
-            ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Valoraciones */}
       {herramienta.valoraciones.length > 0 && (
         <div className="mt-10">
-          <h2 className="text-xl font-bold mb-4">Valoraciones del vendedor</h2>
-          <div className="space-y-4">
+          <h2 className="text-lg font-bold text-gray-900 mb-4">
+            Valoraciones del vendedor
+            {mediaNota && <span className="ml-2 text-[#F97316]">★ {mediaNota}</span>}
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {herramienta.valoraciones.map((v) => (
-              <div key={v.id} className="border rounded-lg p-4">
-                <div className="flex items-center justify-between mb-1">
-                  <p className="font-semibold text-gray-700">
-                    {v.autor
-                      ? `${v.autor.nombre} ${v.autor.apellidos}`
-                      : "Usuario"}
-                  </p>
-                  <p className="text-yellow-500">
-                    {"★".repeat(v.nota)}
-                    {"☆".repeat(5 - v.nota)}
-                  </p>
+              <div key={v.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="font-semibold text-gray-800 text-sm">{v.autor ? `${v.autor.nombre} ${v.autor.apellidos}` : "Usuario"}</p>
+                  <Estrellas nota={v.nota} />
                 </div>
-                {v.comentario && (
-                  <p className="text-sm text-gray-600">{v.comentario}</p>
-                )}
-                <p className="text-xs text-gray-400 mt-1">
-                  {new Date(v.created_at).toLocaleDateString("es-ES")}
-                </p>
+                {v.comentario && <p className="text-sm text-gray-600 leading-relaxed">{v.comentario}</p>}
+                <p className="text-xs text-gray-400 mt-2">{new Date(v.created_at).toLocaleDateString("es-ES")}</p>
               </div>
             ))}
           </div>

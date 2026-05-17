@@ -39,7 +39,7 @@ export default function HerramientasDestacadas() {
   if (loading) {
     return (
       <section className="bg-[#FAFAFA] py-16 px-6">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-[1320px] mx-auto">
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
             Herramientas disponibles
           </h2>
@@ -64,7 +64,7 @@ export default function HerramientasDestacadas() {
 
   return (
     <section className="bg-[#FAFAFA] py-16 px-6">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-[1320px] mx-auto">
         {/* Cabecera */}
         <div className="flex items-end justify-between mb-8">
           <div>
