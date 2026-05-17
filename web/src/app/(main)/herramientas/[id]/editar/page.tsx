@@ -3,18 +3,10 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase";
 import { useRouter, useParams } from "next/navigation";
+import Link from "next/link";
 
-type Categoria = {
-  id: string;
-  nombre: string;
-};
-
-type Descuento = {
-  id: string;
-  dias_minimos: number;
-  porcentaje: number;
-  activo: boolean;
-};
+type Categoria = { id: string; nombre: string; };
+type Descuento = { id: string; dias_minimos: number; porcentaje: number; activo: boolean; };
 
 export default function EditarHerramientaPage() {
   const router = useRouter();
@@ -28,8 +20,7 @@ export default function EditarHerramientaPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
-
-  // Descuentos
+  const [loadingData, setLoadingData] = useState(true);
   const [descuentos, setDescuentos] = useState<Descuento[]>([]);
   const [diasMinimos, setDiasMinimos] = useState("");
   const [porcentaje, setPorcentaje] = useState("");
@@ -45,51 +36,33 @@ export default function EditarHerramientaPage() {
 
   async function loadCategorias() {
     const supabase = createClient();
-    const { data } = await supabase
-      .from("categorias")
-      .select("id, nombre")
-      .eq("activo", true)
-      .order("nombre");
+    const { data } = await supabase.from("categorias").select("id, nombre").eq("activo", true).order("nombre");
     setCategorias(data ?? []);
   }
 
   async function loadComision() {
     const supabase = createClient();
-    const { data } = await supabase
-      .from("configuracion")
-      .select("valor")
-      .eq("clave", "comision")
-      .single();
+    const { data } = await supabase.from("configuracion").select("valor").eq("clave", "comision").single();
     if (data) setComision(parseFloat(data.valor));
   }
 
   async function loadHerramienta() {
     const supabase = createClient();
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
+    const { data: { user } } = await supabase.auth.getUser();
     const { data, error } = await supabase
       .from("herramientas")
       .select("nombre, descripcion, precio_dia, categoria_id, vendedor_id")
       .eq("id", id)
       .single();
 
-    if (error || !data) {
-      setError("Herramienta no encontrada");
-      return;
-    }
-
-    if (data.vendedor_id !== user?.id) {
-      router.push("/herramientas/mis-herramientas");
-      return;
-    }
+    if (error || !data) { setError("Herramienta no encontrada"); setLoadingData(false); return; }
+    if (data.vendedor_id !== user?.id) { router.push("/mis-herramientas"); return; }
 
     setNombre(data.nombre);
     setDescripcion(data.descripcion ?? "");
     setPrecioDia(data.precio_dia.toString());
     setCategoriaId(data.categoria_id);
+    setLoadingData(false);
   }
 
   async function loadDescuentos() {
@@ -101,224 +74,240 @@ export default function EditarHerramientaPage() {
   async function handleAñadirDescuento() {
     setErrorDescuento("");
     setLoadingDescuento(true);
-
     const supabase = createClient();
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
+    const { data: { session } } = await supabase.auth.getSession();
     const res = await fetch(`/api/herramientas/${id}/descuentos`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${session?.access_token}`,
-      },
-      body: JSON.stringify({
-        dias_minimos: parseInt(diasMinimos),
-        porcentaje: parseFloat(porcentaje),
-      }),
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
+      body: JSON.stringify({ dias_minimos: parseInt(diasMinimos), porcentaje: parseFloat(porcentaje) }),
     });
-
     const data = await res.json();
-    if (!res.ok) {
-      setErrorDescuento(data.error);
-    } else {
-      setDiasMinimos("");
-      setPorcentaje("");
-      loadDescuentos();
-    }
+    if (!res.ok) setErrorDescuento(data.error);
+    else { setDiasMinimos(""); setPorcentaje(""); loadDescuentos(); }
     setLoadingDescuento(false);
   }
 
   async function handleEliminarDescuento(descuentoId: string) {
     const supabase = createClient();
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
-    await fetch(
-      `/api/herramientas/${id}/descuentos?descuento_id=${descuentoId}`,
-      {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${session?.access_token}`,
-        },
-      },
-    );
+    const { data: { session } } = await supabase.auth.getSession();
+    await fetch(`/api/herramientas/${id}/descuentos?descuento_id=${descuentoId}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${session?.access_token}` },
+    });
     loadDescuentos();
   }
-
-  const precioCliente = precioDia
-    ? (parseFloat(precioDia) * (1 + comision)).toFixed(2)
-    : "0.00";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError("");
     setSuccess("");
-
     const supabase = createClient();
     const { error } = await supabase
       .from("herramientas")
-      .update({
-        nombre,
-        descripcion,
-        precio_dia: parseFloat(precioDia),
-        categoria_id: categoriaId,
-      })
+      .update({ nombre, descripcion, precio_dia: parseFloat(precioDia), categoria_id: categoriaId })
       .eq("id", id);
 
-    if (error) {
-      setError("Error al actualizar la herramienta");
-    } else {
-      setSuccess("Herramienta actualizada correctamente");
-      setTimeout(() => router.push("/herramientas/mis-herramientas"), 1000);
-    }
-
+    if (error) setError("Error al actualizar la herramienta");
+    else { setSuccess("Herramienta actualizada correctamente"); setTimeout(() => router.push("/mis-herramientas"), 1000); }
     setLoading(false);
   }
 
+  const precioCliente = precioDia ? (parseFloat(precioDia) * (1 + comision)).toFixed(2) : null;
+
+  if (loadingData) return (
+    <main className="min-h-screen bg-[#FAFAFA] px-4 py-12">
+      <div className="max-w-[1320px] mx-auto space-y-4">
+        {[...Array(4)].map((_, i) => <div key={i} className="h-12 bg-gray-100 rounded-xl animate-pulse" />)}
+      </div>
+    </main>
+  );
+
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">Editar herramienta</h1>
+    <main className="min-h-screen bg-[#FAFAFA] px-4 py-12">
+      <div className="max-w-[1320px] mx-auto">
+        <div className="flex flex-col lg:flex-row gap-6 items-start">
 
-      <form onSubmit={handleSubmit} className="space-y-4 mb-10">
-        <div>
-          <label className="block text-sm font-medium mb-1">Nombre</label>
-          <input
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
-            required
-            className="w-full border rounded px-3 py-2"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Descripción</label>
-          <textarea
-            value={descripcion}
-            onChange={(e) => setDescripcion(e.target.value)}
-            className="w-full border rounded px-3 py-2"
-            rows={3}
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Categoría</label>
-          <select
-            value={categoriaId}
-            onChange={(e) => setCategoriaId(e.target.value)}
-            required
-            className="w-full border rounded px-3 py-2"
-          >
-            <option value="">Selecciona una categoría</option>
-            {categorias.map((cat) => (
-              <option key={cat.id} value={cat.id}>
-                {cat.nombre}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            Tu precio por día (€)
-          </label>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={precioDia}
-            onChange={(e) => setPrecioDia(e.target.value)}
-            required
-            className="w-full border rounded px-3 py-2"
-          />
-          {precioDia && (
-            <p className="text-sm text-gray-500 mt-1">
-              El cliente pagará <strong>{precioCliente}€/día</strong> (comisión
-              del {(comision * 100).toFixed(0)}% incluida)
-            </p>
-          )}
-        </div>
-        {error && <p className="text-red-500 text-sm">{error}</p>}
-        {success && <p className="text-green-500 text-sm">{success}</p>}
-        <button
-          type="submit"
-          disabled={loading}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-        >
-          {loading ? "Guardando..." : "Guardar cambios"}
-        </button>
-      </form>
+          {/* Formulario principal */}
+          <div className="flex-1 w-full bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+            {/* Cabecera */}
+            <div className="flex items-center gap-3 mb-8">
+              <Link href="/mis-herramientas" className="text-gray-400 hover:text-[#F97316] transition-colors">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                </svg>
+              </Link>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Editar herramienta</h1>
+                <p className="text-sm text-gray-500 mt-0.5">Modifica los datos de tu herramienta</p>
+              </div>
+            </div>
 
-      {/* Descuentos */}
-      <div>
-        <h2 className="text-xl font-bold mb-4">Descuentos por días</h2>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <label className="text-sm font-medium text-gray-700 block mb-1">Nombre</label>
+                <input
+                  value={nombre}
+                  onChange={(e) => setNombre(e.target.value)}
+                  required
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 outline-none focus:border-[#F97316] transition-colors"
+                />
+              </div>
 
-        {descuentos.length === 0 ? (
-          <p className="text-sm text-gray-500 mb-4">
-            No hay descuentos configurados.
-          </p>
-        ) : (
-          <div className="space-y-2 mb-6">
-            {descuentos.map((d) => (
-              <div
-                key={d.id}
-                className="flex items-center justify-between border rounded px-4 py-2"
-              >
-                <p className="text-sm">
-                  A partir de <strong>{d.dias_minimos} días</strong> →{" "}
-                  <strong>{d.porcentaje}% de descuento</strong>
-                </p>
-                <button
-                  onClick={() => handleEliminarDescuento(d.id)}
-                  className="text-red-500 text-sm hover:underline ml-4"
+              <div>
+                <label className="text-sm font-medium text-gray-700 block mb-1">Descripción</label>
+                <textarea
+                  value={descripcion}
+                  onChange={(e) => setDescripcion(e.target.value)}
+                  rows={3}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 outline-none focus:border-[#F97316] transition-colors resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700 block mb-1">Categoría</label>
+                <select
+                  value={categoriaId}
+                  onChange={(e) => setCategoriaId(e.target.value)}
+                  required
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 outline-none focus:border-[#F97316] transition-colors bg-white"
                 >
-                  Eliminar
+                  <option value="">Selecciona una categoría</option>
+                  {categorias.map((cat) => <option key={cat.id} value={cat.id}>{cat.nombre}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700 block mb-1">Tu precio por día (€)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={precioDia}
+                  onChange={(e) => setPrecioDia(e.target.value)}
+                  required
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 outline-none focus:border-[#F97316] transition-colors"
+                />
+                {precioCliente && (
+                  <div className="mt-2 bg-orange-50 rounded-xl px-4 py-3 flex items-center justify-between">
+                    <p className="text-sm text-gray-600">El cliente pagará <span className="font-bold text-[#F97316]">{precioCliente}€/día</span></p>
+                    <span className="text-xs text-gray-400">Comisión {(comision * 100).toFixed(0)}% incluida</span>
+                  </div>
+                )}
+              </div>
+
+              {error && <p className="text-red-500 text-sm bg-red-50 px-4 py-3 rounded-xl">{error}</p>}
+              {success && <p className="text-green-600 text-sm bg-green-50 px-4 py-3 rounded-xl">{success}</p>}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold py-3 rounded-xl transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {loading ? "Guardando..." : "Guardar cambios"}
+              </button>
+            </form>
+
+            {/* Descuentos */}
+            <div className="border-t border-gray-100 mt-8 pt-8 space-y-4">
+              <div>
+                <h2 className="text-sm font-semibold text-gray-700">Descuentos por días <span className="font-normal text-gray-400">(opcional)</span></h2>
+                <p className="text-xs text-gray-400 mt-0.5">Ofrece descuentos para alquileres de larga duración</p>
+              </div>
+
+              {descuentos.length > 0 && (
+                <div className="space-y-2">
+                  {descuentos.map((d) => (
+                    <div key={d.id} className="flex items-center justify-between bg-orange-50 rounded-xl px-4 py-3">
+                      <p className="text-sm text-gray-700">
+                        A partir de <span className="font-semibold">{d.dias_minimos} días</span> → <span className="font-semibold text-[#F97316]">{d.porcentaje}% dto.</span>
+                      </p>
+                      <button onClick={() => handleEliminarDescuento(d.id)} className="text-xs text-red-400 hover:text-red-600 transition-colors font-medium">
+                        Eliminar
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {descuentos.length === 0 && (
+                <p className="text-sm text-gray-400">No hay descuentos configurados.</p>
+              )}
+
+              <div className="flex gap-3 items-end">
+                <div className="flex-1">
+                  <label className="text-xs font-medium text-gray-600 block mb-1">Días mínimos</label>
+                  <input
+                    type="number"
+                    min="2"
+                    value={diasMinimos}
+                    onChange={(e) => setDiasMinimos(e.target.value)}
+                    placeholder="Ej: 7"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#F97316] transition-colors"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="text-xs font-medium text-gray-600 block mb-1">Descuento (%)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="99"
+                    value={porcentaje}
+                    onChange={(e) => setPorcentaje(e.target.value)}
+                    placeholder="Ej: 10"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#F97316] transition-colors"
+                  />
+                </div>
+                <button
+                  onClick={handleAñadirDescuento}
+                  disabled={loadingDescuento || !diasMinimos || !porcentaje}
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors disabled:opacity-50 shrink-0"
+                >
+                  Añadir
                 </button>
               </div>
-            ))}
+              {errorDescuento && <p className="text-red-500 text-sm bg-red-50 px-4 py-3 rounded-xl">{errorDescuento}</p>}
+            </div>
           </div>
-        )}
 
-        <div className="flex gap-3 items-end">
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Días mínimos
-            </label>
-            <input
-              type="number"
-              min="2"
-              value={diasMinimos}
-              onChange={(e) => setDiasMinimos(e.target.value)}
-              className="border rounded px-3 py-2 w-32"
-              placeholder="Ej: 7"
-            />
+          {/* Recuadro lateral */}
+          <div className="w-full lg:w-72 shrink-0 space-y-4">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+              <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center mb-4">
+                <svg className="w-5 h-5 text-[#F97316]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                </svg>
+              </div>
+              <h3 className="font-bold text-gray-900 mb-2">Consejos</h3>
+              <ul className="space-y-2 text-xs text-gray-600">
+                <li className="flex items-start gap-2">
+                  <span className="text-[#F97316] mt-0.5 shrink-0">✓</span>
+                  Mantén la descripción actualizada
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-[#F97316] mt-0.5 shrink-0">✓</span>
+                  Ajusta el precio según la demanda
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-[#F97316] mt-0.5 shrink-0">✓</span>
+                  Los descuentos atraen más alquileres
+                </li>
+              </ul>
+            </div>
+
+            <Link
+              href={`/herramientas/${id}`}
+              className="flex items-center gap-2 bg-white rounded-2xl shadow-sm border border-gray-100 p-4 text-sm font-semibold text-gray-700 hover:border-[#F97316] hover:text-[#F97316] transition-all"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              Ver página pública
+            </Link>
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Descuento (%)
-            </label>
-            <input
-              type="number"
-              min="1"
-              max="99"
-              value={porcentaje}
-              onChange={(e) => setPorcentaje(e.target.value)}
-              className="border rounded px-3 py-2 w-32"
-              placeholder="Ej: 10"
-            />
-          </div>
-          <button
-            onClick={handleAñadirDescuento}
-            disabled={loadingDescuento || !diasMinimos || !porcentaje}
-            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50"
-          >
-            Añadir
-          </button>
         </div>
-        {errorDescuento && (
-          <p className="text-red-500 text-sm mt-2">{errorDescuento}</p>
-        )}
       </div>
-    </div>
+    </main>
   );
 }

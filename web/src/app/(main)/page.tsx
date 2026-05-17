@@ -9,7 +9,7 @@ export default function Home() {
     <main>
       {/* Hero */}
       <section className="bg-[#F97316] flex items-center overflow-hidden">
-        <div className="max-w-6xl mx-auto px-6 w-full flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="max-w-[1320px] mx-auto px-6 w-full flex flex-col md:flex-row items-center justify-between gap-6">
           {/* Texto */}
           <div className="flex-1 py-12 text-center md:text-left">
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white leading-tight mb-4">
@@ -22,7 +22,7 @@ export default function Home() {
               las tuyas.
             </p>
             <div className="flex gap-3 flex-wrap justify-center md:justify-start">
-              <Link
+               <Link
                 href="/herramientas"
                 className="inline-flex items-center gap-2 bg-white text-[#F97316] font-semibold px-6 py-3 rounded-full hover:bg-orange-50 transition-colors"
               >

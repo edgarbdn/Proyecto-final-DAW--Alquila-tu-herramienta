@@ -38,7 +38,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (inicio < new Date()) {
+  const hoy = new Date().toISOString().split("T")[0];
+
+  if (fecha_inicio < hoy) {
     return NextResponse.json(
       { error: "La fecha de inicio no puede ser en el pasado" },
       { status: 400 },

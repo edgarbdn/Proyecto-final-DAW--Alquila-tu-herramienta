@@ -148,6 +148,10 @@ export default function Navbar() {
               <Link href="/herramientas/nueva" className="text-sm font-semibold text-gray-700 hover:text-gray-900">
                 Publicar
               </Link>
+              <span className="text-gray-200">|</span>
+              <Link href="/mis-herramientas" className="text-sm font-semibold text-gray-700 hover:text-gray-900">
+                Mis herramientas
+              </Link>
               <NotificationBell />
               <Link
                 href="/perfil"
@@ -236,13 +240,22 @@ export default function Navbar() {
 
           {/* Links móvil */}
           {loggedIn ? (
-            <Link
-              href="/herramientas/nueva"
-              onClick={() => setMenuAbierto(false)}
-              className="text-sm font-semibold text-gray-700 hover:text-gray-900 px-1"
-            >
-              Publicar herramienta
-            </Link>
+            <>
+              <Link
+                href="/herramientas/nueva"
+                onClick={() => setMenuAbierto(false)}
+                className="text-sm font-semibold text-gray-700 hover:text-gray-900 px-1"
+              >
+                Publicar herramienta
+              </Link>
+              <Link
+                href="/mis-herramientas"
+                onClick={() => setMenuAbierto(false)}
+                className="text-sm font-semibold text-gray-700 hover:text-gray-900 px-1"
+              >
+                Mis herramientas
+              </Link>
+            </>
           ) : (
             <Link
               href="/register"
