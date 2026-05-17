@@ -68,8 +68,8 @@ export async function POST(request: NextRequest) {
       },
     ],
     mode: "payment",
-    success_url: `${process.env.NEXT_PUBLIC_URL}/alquileres/mis-alquileres?pago=exitoso`,
-    cancel_url: `${process.env.NEXT_PUBLIC_URL}/alquileres/mis-alquileres?pago=cancelado`,
+    success_url: `${process.env.NEXT_PUBLIC_URL}/mis-alquileres?pago=exitoso`,
+    cancel_url: `${process.env.NEXT_PUBLIC_URL}/mis-alquileres?pago=cancelado`,
     metadata: {
       alquiler_id,
       cliente_id: user.id,

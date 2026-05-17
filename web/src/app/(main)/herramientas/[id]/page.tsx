@@ -10,7 +10,7 @@ import "react-day-picker/style.css";
 import { createClient } from "@/lib/supabase";
 
 interface Foto { id: string; url: string; es_principal: boolean; orden: number; }
-interface Vendedor { id: string; nombre: string; apellidos: string; ciudad: string | null; direccion_publica: string | null; }
+interface Vendedor { id: string; nombre: string; apellidos: string; ciudad: string | null; direccion_publica: string | null; avatar_url: string | null; }
 interface Categoria { id: string; nombre: string; }
 interface Valoracion { id: string; nota: number; comentario: string | null; created_at: string; autor: { nombre: string; apellidos: string } | null; }
 interface Descuento { id: string; dias_minimos: number; porcentaje: number; }
@@ -136,39 +136,65 @@ export default function DetalleHerramientaPage() {
         Volver al catálogo
       </Link>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Galería */}
-        <div className="space-y-3">
-          <div className="relative h-80 sm:h-96 bg-gray-100 rounded-2xl overflow-hidden">
-            {fotoActiva ? (
-              <Image src={fotoActiva} alt={herramienta.nombre} fill className="object-cover" />
-            ) : (
-              <div className="flex items-center justify-center h-full text-gray-300">
-                <svg className="w-16 h-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5z" />
-                </svg>
-              </div>
-            )}
-            {!herramienta.disponible && (
-              <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                <span className="bg-white text-gray-700 font-semibold text-sm px-4 py-2 rounded-full">No disponible</span>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 bg-gray-50 rounded-2xl p-6">
+        {/* Columna izquierda: Galería + Vendedor */}
+        <div className="flex flex-col gap-6">
+          {/* Galería */}
+          <div className="space-y-3">
+            <div className="relative h-80 sm:h-96 bg-gray-100 rounded-2xl overflow-hidden">
+              {fotoActiva ? (
+                <Image src={fotoActiva} alt={herramienta.nombre} fill className="object-cover" />
+              ) : (
+                <div className="flex items-center justify-center h-full text-gray-300">
+                  <svg className="w-16 h-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5z" />
+                  </svg>
+                </div>
+              )}
+              {!herramienta.disponible && (
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                  <span className="bg-white text-gray-700 font-semibold text-sm px-4 py-2 rounded-full">No disponible</span>
+                </div>
+              )}
+            </div>
+            {herramienta.fotos.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {herramienta.fotos.map((f) => (
+                  <button key={f.id} onClick={() => setFotoActiva(f.url)}
+                    className={`relative h-16 w-16 flex-shrink-0 rounded-xl overflow-hidden border-2 transition-colors ${fotoActiva === f.url ? "border-[#F97316]" : "border-transparent"}`}
+                  >
+                    <Image src={f.url} alt="" fill className="object-cover" />
+                  </button>
+                ))}
               </div>
             )}
           </div>
-          {herramienta.fotos.length > 1 && (
-            <div className="flex gap-2 overflow-x-auto pb-1">
-              {herramienta.fotos.map((f) => (
-                <button key={f.id} onClick={() => setFotoActiva(f.url)}
-                  className={`relative h-16 w-16 flex-shrink-0 rounded-xl overflow-hidden border-2 transition-colors ${fotoActiva === f.url ? "border-[#F97316]" : "border-transparent"}`}
-                >
-                  <Image src={f.url} alt="" fill className="object-cover" />
-                </button>
-              ))}
+
+          {/* Vendedor */}
+          {herramienta.vendedor && (
+            <div className="flex-1 flex items-center justify-center">
+              <Link
+                href={`/usuario/${herramienta.vendedor.id}`}
+                className="border-2 border-[#F97316] rounded-2xl p-4 pl-24 flex items-center relative min-h-[80px] w-full max-w-xs sm:max-w-sm mx-auto hover:bg-orange-50 transition-colors"
+              >
+                <div className="absolute -left-5 top-1/2 -translate-y-1/2 w-24 h-24 rounded-full bg-[#F97316] overflow-hidden flex items-center justify-center text-white font-bold text-3xl shrink-0 border-2 border-[#F97316] shadow-md">
+                  {herramienta.vendedor.avatar_url ? (
+                    <Image src={herramienta.vendedor.avatar_url} alt="Avatar" width={96} height={96} className="object-cover w-full h-full" />
+                  ) : (
+                    herramienta.vendedor.nombre[0]?.toUpperCase()
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="font-bold text-gray-900 text-base truncate">{herramienta.vendedor.nombre} {herramienta.vendedor.apellidos}</p>
+                  {herramienta.vendedor.ciudad && <p className="text-sm text-gray-500 mt-1 truncate">{herramienta.vendedor.ciudad}</p>}
+                  {herramienta.vendedor.direccion_publica && <p className="text-sm text-gray-400 mt-0.5 truncate">{herramienta.vendedor.direccion_publica}</p>}
+                </div>
+              </Link>
             </div>
           )}
         </div>
 
-        {/* Info */}
+        {/* Columna derecha: Info + Descuentos */}
         <div className="space-y-5">
           {/* Categoría y nombre */}
           <div>
@@ -188,27 +214,13 @@ export default function DetalleHerramientaPage() {
           {/* Descripción */}
           <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-wrap">{herramienta.descripcion}</p>
 
-          {/* Vendedor */}
-          {herramienta.vendedor && (
-            <div className="bg-gray-50 rounded-2xl p-4 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-[#F97316] flex items-center justify-center text-white font-bold text-sm shrink-0">
-                {herramienta.vendedor.nombre[0]?.toUpperCase()}
-              </div>
-              <div>
-                <p className="font-semibold text-gray-900 text-sm">{herramienta.vendedor.nombre} {herramienta.vendedor.apellidos}</p>
-                {herramienta.vendedor.ciudad && <p className="text-xs text-gray-500">📍 {herramienta.vendedor.ciudad}</p>}
-                {herramienta.vendedor.direccion_publica && <p className="text-xs text-gray-400">{herramienta.vendedor.direccion_publica}</p>}
-              </div>
-            </div>
-          )}
-
           {/* Descuentos */}
           {herramienta.descuentos.length > 0 && (
-            <div className="space-y-2">
-              <p className="text-sm font-semibold text-gray-700">Descuentos por duración</p>
+            <div className="bg-green-50 rounded-2xl p-4 space-y-3">
+              <p className="text-base font-bold text-green-800">Descuentos por duración</p>
               <div className="flex flex-wrap gap-2">
                 {herramienta.descuentos.map((d) => (
-                  <span key={d.id} className="text-xs font-semibold bg-green-50 text-green-700 px-3 py-1.5 rounded-full">
+                  <span key={d.id} className="text-sm font-bold bg-green-600 text-white px-4 py-2 rounded-full shadow-sm">
                     +{d.dias_minimos} días → {d.porcentaje}% dto.
                   </span>
                 ))}

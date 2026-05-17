@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import NotificationBell from "./NotificationBell";
 
 type Sugerencia = {
@@ -13,6 +14,7 @@ type Sugerencia = {
 
 export default function Navbar() {
   const [nombre, setNombre] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [loggedIn, setLoggedIn] = useState(false);
   const [busqueda, setBusqueda] = useState("");
   const [sugerencias, setSugerencias] = useState<Sugerencia[]>([]);
@@ -32,16 +34,19 @@ export default function Navbar() {
       setLoggedIn(true);
       const { data } = await supabase
         .from("users")
-        .select("nombre")
+        .select("nombre, avatar_url")
         .eq("id", user.id)
         .single();
-      if (data) setNombre(data.nombre);
+      if (data) {
+        setNombre(data.nombre);
+        setAvatarUrl(data.avatar_url ?? null);
+      }
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setLoggedIn(!!session);
-        if (!session) setNombre(null);
+        if (!session) { setNombre(null); setAvatarUrl(null); }
       },
     );
 
@@ -155,9 +160,13 @@ export default function Navbar() {
               <NotificationBell />
               <Link
                 href="/perfil"
-                className="w-8 h-8 rounded-full bg-[#F97316] flex items-center justify-center text-white text-sm font-bold"
+                className="w-8 h-8 rounded-full bg-[#F97316] flex items-center justify-center text-white text-sm font-bold overflow-hidden shrink-0"
               >
-                {nombre ? nombre[0].toUpperCase() : "?"}
+                {avatarUrl ? (
+                  <Image src={avatarUrl} alt="Avatar" width={32} height={32} className="object-cover w-full h-full" />
+                ) : (
+                  nombre ? nombre[0].toUpperCase() : "?"
+                )}
               </Link>
             </>
           ) : (
@@ -176,9 +185,13 @@ export default function Navbar() {
           {loggedIn && (
             <Link
               href="/perfil"
-              className="w-8 h-8 rounded-full bg-[#F97316] flex items-center justify-center text-white text-sm font-bold"
+              className="w-8 h-8 rounded-full bg-[#F97316] flex items-center justify-center text-white text-sm font-bold overflow-hidden shrink-0"
             >
-              {nombre ? nombre[0].toUpperCase() : "?"}
+              {avatarUrl ? (
+                <Image src={avatarUrl} alt="Avatar" width={32} height={32} className="object-cover w-full h-full" />
+              ) : (
+                nombre ? nombre[0].toUpperCase() : "?"
+              )}
             </Link>
           )}
           {/* Hamburguesa */}
