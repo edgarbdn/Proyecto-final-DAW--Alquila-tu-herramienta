@@ -14,6 +14,7 @@ type Alquiler = {
   precio_final: number;
   estado: string;
   created_at: string;
+  ya_valorado: boolean;
   herramientas: { id: string; nombre: string; fotos: { url: string; es_principal: boolean }[] } | null;
   users: { id: string; nombre: string; apellidos: string; avatar_url: string | null } | null;
 };
@@ -187,7 +188,7 @@ export default function SolicitudesPage() {
                   )}
 
                   {/* Boton valorar — solo finalizados */}
-                  {a.estado === "finalizado" && !yaValorados.has(a.id) && a.users && (
+                  {a.estado === "finalizado" && !a.ya_valorado && !yaValorados.has(a.id) && a.users && (
                     <button
                       onClick={() => setModalValoracion(a)}
                       className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-orange-50 text-[#F97316] hover:bg-orange-100 transition-colors shrink-0"

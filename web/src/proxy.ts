@@ -16,8 +16,20 @@ export async function proxy(request: NextRequest) {
   }
 
   // Rutas protegidas para usuarios no autenticados
-  const rutasProtegidas = ["/perfil", "/herramientas/nueva", "/alquileres"];
+  const rutasProtegidas = [
+    "/perfil",
+    "/herramientas/nueva",
+    "/mis-herramientas",
+    "/mis-alquileres",
+    "/solicitudes",
+    "/notificaciones",
+  ];
   if (!session && rutasProtegidas.some((r) => path.startsWith(r))) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  // Rutas con patrón dinámico: /herramientas/[id]/editar
+  if (!session && /^\/herramientas\/[^\/]+\/editar/.test(path)) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 

@@ -37,7 +37,20 @@ export async function GET(request: NextRequest) {
   const misIds = new Set((misHerramientas ?? []).map((h: any) => h.id));
   const filtrados = (data ?? []).filter((a: any) => misIds.has(a.herramientas?.id));
 
-  return NextResponse.json({ alquileres: filtrados });
+  // Buscar alquileres ya valorados por el vendedor
+  const { data: valoraciones } = await supabase
+    .from("valoraciones")
+    .select("alquiler_id")
+    .eq("autor_id", user.id);
+
+  const yaValorados = new Set((valoraciones ?? []).map((v: any) => v.alquiler_id));
+
+  const filtradosConValoracion = filtrados.map((a: any) => ({
+    ...a,
+    ya_valorado: yaValorados.has(a.id),
+  }));
+
+  return NextResponse.json({ alquileres: filtradosConValoracion });
 }
 
 // PATCH — confirmar o rechazar
