@@ -27,7 +27,7 @@ export async function GET(
       descripcion,
       precio_dia,
       disponible,
-      vendedor:vendedores_publicos!vendedor_id(id, nombre, apellidos, ciudad, direccion_publica),
+      vendedor:vendedores_publicos!vendedor_id(id, nombre, apellidos, ciudad, direccion_publica, avatar_url),
       categoria:categorias!categoria_id(id, nombre),
       fotos(id, url, es_principal, orden)
     `,
