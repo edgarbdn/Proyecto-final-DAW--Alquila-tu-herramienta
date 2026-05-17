@@ -43,7 +43,7 @@ export default function NotificationBell() {
       headers: { Authorization: `Bearer ${t}` },
     });
     const data = await res.json();
-    if (res.ok) setNotificaciones(data.notificaciones ?? []);
+    if (res.ok) setNotificaciones((data.notificaciones ?? []).filter((n: Notificacion) => !n.leida));
   }
 
   async function marcarLeida(id: string) {
@@ -52,9 +52,7 @@ export default function NotificationBell() {
       method: "PATCH",
       headers: { Authorization: `Bearer ${token}` },
     });
-    setNotificaciones((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, leida: true } : n)),
-    );
+    setNotificaciones((prev) => prev.filter((n) => n.id !== id));
   }
 
   const noLeidas = notificaciones.filter((n) => !n.leida).length;
