@@ -15,6 +15,7 @@ type Alquiler = {
   precio_final: number;
   estado: string;
   created_at: string;
+  ya_valorado: boolean;
   herramientas: {
     id: string;
     nombre: string;
@@ -213,7 +214,7 @@ export default function MisAlquileresPage() {
                 )}
 
                 {/* Botón valorar — solo finalizados y no valorados */}
-                {a.estado === "finalizado" && !yaValorados.has(a.id) && a.herramientas?.users && (
+                {a.estado === "finalizado" && !a.ya_valorado && !yaValorados.has(a.id) && a.herramientas?.users && (
                   <button
                     onClick={() => setModalValoracion(a)}
                     className="w-full border-t border-gray-100 py-2.5 text-sm font-semibold text-[#F97316] hover:bg-orange-50 transition-colors flex items-center justify-center gap-2"

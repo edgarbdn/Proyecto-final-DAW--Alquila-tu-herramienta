@@ -29,5 +29,19 @@ export async function GET(request: NextRequest) {
     .order("created_at", { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ alquileres: data ?? [] });
+
+  // Buscar alquileres ya valorados por este usuario
+  const { data: valoraciones } = await supabaseAdmin
+    .from("valoraciones")
+    .select("alquiler_id")
+    .eq("autor_id", user.id);
+
+  const yaValorados = new Set((valoraciones ?? []).map((v: any) => v.alquiler_id));
+
+  const alquileresConValoracion = (data ?? []).map((a: any) => ({
+    ...a,
+    ya_valorado: yaValorados.has(a.id),
+  }));
+
+  return NextResponse.json({ alquileres: alquileresConValoracion });
 }
