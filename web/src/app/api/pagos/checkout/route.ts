@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const herramienta = alquiler.herramientas as { nombre: string };
+  const herramienta = (Array.isArray(alquiler.herramientas) ? alquiler.herramientas[0] : alquiler.herramientas) as { nombre: string };
 
   // Crear sesión de Stripe Checkout
   const session = await stripe.checkout.sessions.create({

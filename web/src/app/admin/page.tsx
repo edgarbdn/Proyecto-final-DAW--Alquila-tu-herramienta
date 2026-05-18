@@ -344,7 +344,7 @@ export default function AdminPage() {
                   />
                   <XAxis dataKey="fecha" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip formatter={(v: number) => `${v.toFixed(2)}€`} />
+                  <Tooltip formatter={(v) => typeof v === 'number' ? `${v.toFixed(2)}€` : v} />
                   <Legend />
                   <Bar
                     dataKey="ingresos"
@@ -408,7 +408,7 @@ export default function AdminPage() {
                     />
                   ))}
                 </Pie>
-                <Tooltip formatter={(v: number) => `${v} herramientas`} />
+                <Tooltip formatter={(v) => typeof v === 'number' ? `${v} herramientas` : v} />
                 <Legend />
               </PieChart>
             </ResponsiveContainer>

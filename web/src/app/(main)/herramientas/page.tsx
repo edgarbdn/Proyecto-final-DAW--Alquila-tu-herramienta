@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
 interface Foto { url: string; es_principal: boolean; }
 interface Vendedor { nombre: string; apellidos: string; ciudad: string | null; }
@@ -15,7 +16,7 @@ interface Herramienta {
 }
 interface CategoriaFiltro { id: string; nombre: string; }
 
-export default function CatalogoPage() {
+function CatalogoContent() {
   const [herramientas, setHerramientas] = useState<Herramienta[]>([]);
   const [categorias, setCategorias] = useState<CategoriaFiltro[]>([]);
   const [loading, setLoading] = useState(true);
@@ -275,5 +276,13 @@ export default function CatalogoPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function CatalogoPage() {
+  return (
+    <Suspense fallback={<main className="min-h-screen bg-[#FAFAFA]" />}>
+      <CatalogoContent />
+    </Suspense>
   );
 }
