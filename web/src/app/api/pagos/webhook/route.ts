@@ -39,6 +39,14 @@ export async function POST(request: NextRequest) {
       .update({ estado: "activo" })
       .eq("id", alquiler_id);
 
+    // Obtener vendedor_id del alquiler
+    const { data: alquiler } = await supabase
+      .from("alquileres")
+      .select("herramientas!inner(vendedor_id)")
+      .eq("id", alquiler_id)
+      .single();
+    const vendedor_id = (alquiler?.herramientas as any)?.vendedor_id;
+
     // Registrar el pago
     await supabase.from("pagos").insert({
       alquiler_id,
@@ -53,8 +61,18 @@ export async function POST(request: NextRequest) {
       await supabase.from("notificaciones").insert({
         usuario_id: cliente_id,
         titulo: "Pago completado",
-        mensaje:
-          "Tu pago se ha procesado correctamente. ¡Disfruta del alquiler!",
+        mensaje: "Tu pago se ha procesado correctamente. ¡Disfruta del alquiler!",
+        enlace: "/mis-alquileres",
+      });
+    }
+
+    // Notificar al vendedor
+    if (vendedor_id) {
+      await supabase.from("notificaciones").insert({
+        usuario_id: vendedor_id,
+        titulo: "Pago recibido",
+        mensaje: "El cliente ha realizado el pago. El alquiler ya está activo.",
+        enlace: "/solicitudes",
       });
     }
   }

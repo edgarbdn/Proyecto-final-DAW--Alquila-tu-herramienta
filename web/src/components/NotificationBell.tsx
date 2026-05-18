@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
 
 type Notificacion = {
   id: string;
@@ -9,6 +10,7 @@ type Notificacion = {
   mensaje: string;
   leida: boolean;
   created_at: string;
+  enlace: string | null;
 };
 
 export default function NotificationBell() {
@@ -16,6 +18,7 @@ export default function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   useEffect(() => {
     const supabase = createClient();
@@ -46,13 +49,15 @@ export default function NotificationBell() {
     if (res.ok) setNotificaciones((data.notificaciones ?? []).filter((n: Notificacion) => !n.leida));
   }
 
-  async function marcarLeida(id: string) {
+  async function marcarLeida(id: string, enlace: string | null) {
     if (!token) return;
     await fetch(`/api/notificaciones/${id}`, {
       method: "PATCH",
       headers: { Authorization: `Bearer ${token}` },
     });
     setNotificaciones((prev) => prev.filter((n) => n.id !== id));
+    setOpen(false);
+    if (enlace) router.push(enlace);
   }
 
   const noLeidas = notificaciones.filter((n) => !n.leida).length;
@@ -99,7 +104,7 @@ export default function NotificationBell() {
               {notificaciones.map((n) => (
                 <li
                   key={n.id}
-                  onClick={() => !n.leida && marcarLeida(n.id)}
+                  onClick={() => marcarLeida(n.id, n.enlace)}
                   className={`px-4 py-3 border-b cursor-pointer hover:bg-gray-50 transition-colors ${
                     n.leida ? "opacity-60" : "bg-blue-50"
                   }`}

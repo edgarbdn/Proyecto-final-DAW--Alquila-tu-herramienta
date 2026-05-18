@@ -7,6 +7,7 @@ import Link from "next/link";
 
 type Categoria = { id: string; nombre: string; };
 type Descuento = { id: string; dias_minimos: number; porcentaje: number; activo: boolean; };
+type Horario = { id: string; hora: string; };
 
 export default function EditarHerramientaPage() {
   const router = useRouter();
@@ -26,12 +27,16 @@ export default function EditarHerramientaPage() {
   const [porcentaje, setPorcentaje] = useState("");
   const [errorDescuento, setErrorDescuento] = useState("");
   const [loadingDescuento, setLoadingDescuento] = useState(false);
+  const [horarios, setHorarios] = useState<Horario[]>([]);
+  const [horaSeleccionada, setHoraSeleccionada] = useState("");
+  const [errorHorario, setErrorHorario] = useState("");
 
   useEffect(() => {
     loadCategorias();
     loadComision();
     loadHerramienta();
     loadDescuentos();
+    loadHorarios();
   }, []);
 
   async function loadCategorias() {
@@ -69,6 +74,52 @@ export default function EditarHerramientaPage() {
     const res = await fetch(`/api/herramientas/${id}/descuentos`);
     const data = await res.json();
     setDescuentos(data.descuentos ?? []);
+  }
+
+  async function loadHorarios() {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("horarios_recogida")
+      .select("id, hora")
+      .eq("herramienta_id", id)
+      .order("hora", { ascending: true });
+    setHorarios(data ?? []);
+  }
+
+  async function handleAñadirHorario() {
+    setErrorHorario("");
+    if (!horaSeleccionada) { setErrorHorario("Selecciona una hora"); return; }
+    if (horarios.some((h) => h.hora === horaSeleccionada)) { setErrorHorario("Ese horario ya está añadido"); return; }
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("horarios_recogida")
+      .insert({ herramienta_id: id, hora: horaSeleccionada })
+      .select("id, hora")
+      .single();
+    if (error) { setErrorHorario("Error al añadir el horario"); return; }
+    setHorarios([...horarios, data].sort((a, b) => a.hora.localeCompare(b.hora)));
+    setHoraSeleccionada("");
+  }
+
+  async function handleEliminarHorario(horarioId: string) {
+    const supabase = createClient();
+    // Verificar si hay alquileres activos o pendientes con este horario
+    const { data: alquileres } = await supabase
+      .from("alquileres")
+      .select("id")
+      .eq("horario_id", horarioId)
+      .in("estado", ["pendiente", "confirmado", "activo"])
+      .limit(1);
+
+    if (alquileres && alquileres.length > 0) {
+      setErrorHorario("No puedes eliminar este horario porque tiene alquileres activos o pendientes asociados.");
+      return;
+    }
+
+    const { error } = await supabase.from("horarios_recogida").delete().eq("id", horarioId);
+    if (error) { setErrorHorario("Error al eliminar el horario"); return; }
+    setHorarios(horarios.filter((h) => h.id !== horarioId));
+    setErrorHorario("");
   }
 
   async function handleAñadirDescuento() {
@@ -198,17 +249,7 @@ export default function EditarHerramientaPage() {
 
               {error && <p className="text-red-500 text-sm bg-red-50 px-4 py-3 rounded-xl">{error}</p>}
               {success && <p className="text-green-600 text-sm bg-green-50 px-4 py-3 rounded-xl">{success}</p>}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold py-3 rounded-xl transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {loading ? "Guardando..." : "Guardar cambios"}
-              </button>
             </form>
-
-            {/* Descuentos */}
             <div className="border-t border-gray-100 mt-8 pt-8 space-y-4">
               <div>
                 <h2 className="text-sm font-semibold text-gray-700">Descuentos por días <span className="font-normal text-gray-400">(opcional)</span></h2>
@@ -268,6 +309,70 @@ export default function EditarHerramientaPage() {
               </div>
               {errorDescuento && <p className="text-red-500 text-sm bg-red-50 px-4 py-3 rounded-xl">{errorDescuento}</p>}
             </div>
+
+            {/* Horarios de recogida */}
+            <div className="border-t border-gray-100 mt-8 pt-8 space-y-4">
+              <div>
+                <h2 className="text-sm font-semibold text-gray-700">Horarios de recogida</h2>
+                <p className="text-xs text-gray-400 mt-0.5">Elige los horarios en los que el cliente puede recoger la herramienta</p>
+              </div>
+
+              {horarios.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {horarios.map((h) => (
+                    <div key={h.id} className="flex items-center gap-2 bg-orange-50 text-[#F97316] text-sm font-semibold px-3 py-1.5 rounded-full">
+                      <span>{h.hora}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleEliminarHorario(h.id)}
+                        className="text-[#F97316] hover:text-red-500 transition-colors"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {horarios.length === 0 && (
+                <p className="text-sm text-gray-400">No hay horarios configurados.</p>
+              )}
+
+              <div className="flex gap-3 items-end">
+                <div className="flex-1">
+                  <label className="text-xs font-medium text-gray-600 block mb-1">Hora</label>
+                  <input
+                    type="time"
+                    value={horaSeleccionada}
+                    onChange={(e) => setHoraSeleccionada(e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#F97316] transition-colors"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleAñadirHorario}
+                  disabled={!horaSeleccionada}
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors disabled:opacity-50 shrink-0"
+                >
+                  Añadir
+                </button>
+              </div>
+              {errorHorario && <p className="text-red-500 text-sm bg-red-50 px-4 py-3 rounded-xl">{errorHorario}</p>}
+            </div>
+
+            {/* Botón guardar */}
+            <div className="border-t border-gray-100 mt-8 pt-8">
+              <button
+                onClick={handleSubmit as any}
+                disabled={loading}
+                className="w-full bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold py-3 rounded-xl transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {loading ? "Guardando..." : "Guardar cambios"}
+              </button>
+            </div>
+
           </div>
 
           {/* Recuadro lateral */}

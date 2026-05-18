@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 
 interface Foto { url: string; es_principal: boolean; }
 interface Vendedor { nombre: string; apellidos: string; ciudad: string | null; }
@@ -20,7 +21,8 @@ export default function CatalogoPage() {
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [totalPaginas, setTotalPaginas] = useState(1);
-  const [nombre, setNombre] = useState("");
+  const searchParams = useSearchParams();
+  const [nombre, setNombre] = useState(searchParams.get("nombre") ?? "");
   const [categoria, setCategoria] = useState("");
   const [ciudad, setCiudad] = useState("");
   const [precioMin, setPrecioMin] = useState("");
@@ -34,7 +36,11 @@ export default function CatalogoPage() {
     fetch("/api/ciudades").then((r) => r.json()).then((data) => setCiudades(data.ciudades));
   }, []);
 
-  useEffect(() => { cargarHerramientas(); }, [pagina]);
+  useEffect(() => {
+    setNombre(searchParams.get("nombre") ?? "");
+  }, [searchParams]);
+
+  useEffect(() => { cargarHerramientas(); }, [pagina, nombre]);
 
   async function cargarHerramientas() {
     setLoading(true);
