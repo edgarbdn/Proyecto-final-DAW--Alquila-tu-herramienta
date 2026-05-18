@@ -66,6 +66,13 @@ export async function GET(
     .eq("activo", true)
     .order("dias_minimos", { ascending: true });
 
+  // Horarios de recogida
+  const { data: horarios } = await supabase
+    .from("horarios_recogida")
+    .select("id, hora")
+    .eq("herramienta_id", id)
+    .order("hora", { ascending: true });
+
   // Ordenar fotos: principal primero, luego por orden
   const fotosOrdenadas = [...(herramienta.fotos ?? [])].sort((a, b) => {
     if (a.es_principal) return -1;
@@ -81,5 +88,6 @@ export async function GET(
     ),
     valoraciones: valoraciones ?? [],
     descuentos: descuentos ?? [],
+    horarios: horarios ?? [],
   });
 }

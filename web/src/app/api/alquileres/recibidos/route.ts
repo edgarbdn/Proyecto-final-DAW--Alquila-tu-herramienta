@@ -1,3 +1,4 @@
+import { createClient } from "@supabase/supabase-js";
 import { createServerSideClient } from "@/lib/supabase-server";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -17,25 +18,32 @@ export async function GET(request: NextRequest) {
 
   const supabase = await createServerSideClient(token);
 
-  const { data, error } = await supabase
-    .from("alquileres")
-    .select(`
-      id, fecha_inicio, fecha_fin, dias, precio_final, estado, created_at,
-      herramientas(id, nombre, fotos(url, es_principal)),
-      users!alquileres_cliente_id_fkey(id, nombre, apellidos, avatar_url)
-    `)
-    .order("created_at", { ascending: false });
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  );
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
-  // Filtrar solo los que pertenecen a herramientas del usuario
+  // Obtener herramientas del vendedor
   const { data: misHerramientas } = await supabase
     .from("herramientas")
     .select("id")
     .eq("vendedor_id", user.id);
 
   const misIds = new Set((misHerramientas ?? []).map((h: any) => h.id));
-  const filtrados = (data ?? []).filter((a: any) => misIds.has(a.herramientas?.id));
+  if (misIds.size === 0) return NextResponse.json({ alquileres: [] });
+
+  const { data, error } = await supabaseAdmin
+    .from("alquileres")
+    .select(`
+      id, fecha_inicio, fecha_fin, dias, precio_final, estado, created_at,
+      horarios_recogida(hora),
+      herramientas(id, nombre, fotos(url, es_principal)),
+      users!alquileres_cliente_id_fkey(id, nombre, apellidos, avatar_url, ciudad)
+    `)
+    .in("herramienta_id", Array.from(misIds))
+    .order("created_at", { ascending: false });
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   // Buscar alquileres ya valorados por el vendedor
   const { data: valoraciones } = await supabase
@@ -45,7 +53,7 @@ export async function GET(request: NextRequest) {
 
   const yaValorados = new Set((valoraciones ?? []).map((v: any) => v.alquiler_id));
 
-  const filtradosConValoracion = filtrados.map((a: any) => ({
+  const filtradosConValoracion = (data ?? []).map((a: any) => ({
     ...a,
     ya_valorado: yaValorados.has(a.id),
   }));
@@ -98,6 +106,7 @@ export async function PATCH(request: NextRequest) {
     usuario_id: alquiler.cliente_id,
     titulo: estado === "confirmado" ? "Alquiler confirmado ✓" : "Alquiler rechazado",
     mensaje,
+    enlace: "/mis-alquileres",
   });
 
   return NextResponse.json({ ok: true });

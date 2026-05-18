@@ -14,10 +14,11 @@ interface Vendedor { id: string; nombre: string; apellidos: string; ciudad: stri
 interface Categoria { id: string; nombre: string; }
 interface Valoracion { id: string; nota: number; comentario: string | null; created_at: string; autor: { nombre: string; apellidos: string } | null; }
 interface Descuento { id: string; dias_minimos: number; porcentaje: number; }
+interface Horario { id: string; hora: string; }
 interface Herramienta {
   id: string; nombre: string; descripcion: string; precio_dia: number; precio_dia_publico: number;
   disponible: boolean; vendedor: Vendedor | null; categoria: Categoria;
-  fotos: Foto[]; valoraciones: Valoracion[]; descuentos: Descuento[];
+  fotos: Foto[]; valoraciones: Valoracion[]; descuentos: Descuento[]; horarios: Horario[];
 }
 
 function Estrellas({ nota, size = "sm" }: { nota: number; size?: "sm" | "md" }) {
@@ -46,6 +47,7 @@ export default function DetalleHerramientaPage() {
   const [enviando, setEnviando] = useState(false);
   const [errorAlquiler, setErrorAlquiler] = useState("");
   const [exito, setExito] = useState(false);
+  const [horarioId, setHorarioId] = useState<string>("");
 
   useEffect(() => {
     const supabase = createClient();
@@ -60,6 +62,7 @@ export default function DetalleHerramientaPage() {
         fotos: data.fotos ?? [],
         valoraciones: data.valoraciones ?? [],
         descuentos: data.descuentos ?? [],
+        horarios: data.horarios ?? [],
       });
       setFotoActiva(data.fotos?.find((f: Foto) => f.es_principal)?.url ?? data.fotos?.[0]?.url ?? null);
       setLoading(false);
@@ -106,6 +109,7 @@ export default function DetalleHerramientaPage() {
 
   async function handleAlquilar() {
     if (!rango?.from || !rango?.to || !token) return;
+    if (!horarioId) { setErrorAlquiler("Selecciona un horario de recogida"); return; }
     setEnviando(true);
     setErrorAlquiler("");
     const toLocalDateString = (d: Date) =>
@@ -116,7 +120,7 @@ export default function DetalleHerramientaPage() {
     const res = await fetch("/api/alquileres", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ herramienta_id: id, fecha_inicio, fecha_fin }),
+      body: JSON.stringify({ herramienta_id: id, fecha_inicio, fecha_fin, horario_id: horarioId }),
     });
     const data = await res.json();
     if (!res.ok) setErrorAlquiler(data.error);
@@ -128,7 +132,7 @@ export default function DetalleHerramientaPage() {
   hoy.setHours(0, 0, 0, 0);
 
   return (
-    <main className="max-w-[1320px] mx-auto px-4 py-8">
+    <main className="max-w-[1320px] mx-auto px-4 py-8 w-full">
       <Link href="/herramientas" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#F97316] transition-colors mb-6">
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
@@ -301,7 +305,30 @@ export default function DetalleHerramientaPage() {
 
                 {errorAlquiler && <p className="text-red-500 text-sm bg-red-50 px-4 py-3 rounded-xl">{errorAlquiler}</p>}
 
-                <button onClick={handleAlquilar} disabled={!rango?.from || !rango?.to || enviando}
+                {/* Selector horario */}
+                {herramienta.horarios.length > 0 && (
+                  <div>
+                    <p className="text-sm font-semibold text-gray-700 mb-2">Horario de recogida</p>
+                    <div className="flex flex-wrap gap-2">
+                      {herramienta.horarios.map((h) => (
+                        <button
+                          key={h.id}
+                          type="button"
+                          onClick={() => setHorarioId(h.id)}
+                          className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
+                            horarioId === h.id
+                              ? "bg-[#F97316] text-white"
+                              : "bg-gray-100 text-gray-600 hover:bg-orange-50 hover:text-[#F97316]"
+                          }`}
+                        >
+                          {h.hora}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <button onClick={handleAlquilar} disabled={!rango?.from || !rango?.to || enviando || !horarioId}
                   className="w-full bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold py-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {enviando ? "Enviando solicitud..." : "Confirmar solicitud"}

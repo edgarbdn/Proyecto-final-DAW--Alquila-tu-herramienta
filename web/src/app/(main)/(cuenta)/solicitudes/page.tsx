@@ -15,8 +15,9 @@ type Alquiler = {
   estado: string;
   created_at: string;
   ya_valorado: boolean;
+  horarios_recogida: { hora: string } | null;
   herramientas: { id: string; nombre: string; fotos: { url: string; es_principal: boolean }[] } | null;
-  users: { id: string; nombre: string; apellidos: string; avatar_url: string | null } | null;
+  users: { id: string; nombre: string; apellidos: string; avatar_url: string | null; ciudad: string | null } | null;
 };
 
 const ESTADO_STYLES: Record<string, { bg: string; text: string; dot: string; label: string }> = {
@@ -123,10 +124,12 @@ export default function SolicitudesPage() {
             const estilo = ESTADO_STYLES[a.estado] ?? ESTADO_STYLES.finalizado;
             const foto = a.herramientas?.fotos?.find((f) => f.es_principal)?.url ?? a.herramientas?.fotos?.[0]?.url;
             return (
-              <div key={a.id} className={`bg-white rounded-2xl border shadow-sm p-4 ${a.estado === "pendiente" ? "border-yellow-200" : "border-gray-100"}`}>
-                <div className="flex items-center gap-4">
+              <div key={a.id} className={`bg-white rounded-2xl border shadow-sm overflow-hidden ${
+                a.estado === "pendiente" ? "border-yellow-300" : "border-gray-100"
+              }`}>
+                <div className="p-4 flex items-start gap-4">
                   {/* Foto herramienta */}
-                  <div className="w-14 h-14 rounded-xl bg-gray-100 overflow-hidden shrink-0 relative">
+                  <div className="w-16 h-16 rounded-xl bg-gray-100 overflow-hidden shrink-0 relative">
                     {foto ? (
                       <Image src={foto} alt={a.herramientas?.nombre ?? ""} fill className="object-cover" />
                     ) : (
@@ -138,7 +141,7 @@ export default function SolicitudesPage() {
                     )}
                   </div>
 
-                  {/* Info */}
+                  {/* Info principal */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <Link href={`/herramientas/${a.herramientas?.id}`} className="font-semibold text-gray-900 hover:text-[#F97316] transition-colors truncate">
@@ -149,54 +152,59 @@ export default function SolicitudesPage() {
                         {estilo.label}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      {new Date(a.fecha_inicio).toLocaleDateString("es-ES")} → {new Date(a.fecha_fin).toLocaleDateString("es-ES")} · {a.dias}d · <span className="font-semibold text-gray-600">{Number(a.precio_final).toFixed(2)}€</span>
-                    </p>
-                    {/* Cliente */}
-                    {a.users && (
-                      <div className="flex items-center gap-1.5 mt-1">
-                        <div className="w-5 h-5 rounded-full bg-[#F97316] overflow-hidden flex items-center justify-center text-white text-xs font-bold shrink-0">
-                          {a.users.avatar_url ? (
-                            <Image src={a.users.avatar_url} alt="" width={20} height={20} className="object-cover" />
-                          ) : (
-                            a.users.nombre[0]?.toUpperCase()
-                          )}
-                        </div>
-                        <p className="text-xs text-gray-500">{a.users.nombre} {a.users.apellidos}</p>
-                      </div>
-                    )}
+                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+                      <p className="text-xs text-gray-500">{new Date(a.fecha_inicio).toLocaleDateString("es-ES")} → {new Date(a.fecha_fin).toLocaleDateString("es-ES")} ({a.dias}d)</p>
+                      {a.horarios_recogida?.hora && <p className="text-xs text-gray-500">Recogida: <span className="font-semibold">{a.horarios_recogida.hora}</span></p>}
+                      <p className="text-xs text-gray-500">Total: <span className="font-semibold text-gray-700">{Number(a.precio_final).toFixed(2)}€</span></p>
+                    </div>
                   </div>
 
-                  {/* Acciones — solo pendientes */}
-                  {a.estado === "pendiente" && (
-                    <div className="flex gap-2 shrink-0">
-                      <button
-                        onClick={() => handleAccion(a.id, "confirmado")}
-                        disabled={gestionando === a.id}
-                        className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition-colors disabled:opacity-50"
-                      >
-                        {gestionando === a.id ? "..." : "Confirmar"}
+                  {/* Acciones */}
+                  <div className="flex gap-2 shrink-0">
+                    {a.estado === "pendiente" && (
+                      <>
+                        <button onClick={() => handleAccion(a.id, "confirmado")} disabled={gestionando === a.id}
+                          className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition-colors disabled:opacity-50">
+                          {gestionando === a.id ? "..." : "Confirmar"}
+                        </button>
+                        <button onClick={() => handleAccion(a.id, "cancelado")} disabled={gestionando === a.id}
+                          className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50">
+                          {gestionando === a.id ? "..." : "Rechazar"}
+                        </button>
+                      </>
+                    )}
+                    {a.estado === "finalizado" && !a.ya_valorado && !yaValorados.has(a.id) && a.users && (
+                      <button onClick={() => setModalValoracion(a)}
+                        className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-orange-50 text-[#F97316] hover:bg-orange-100 transition-colors shrink-0">
+                        Valorar
                       </button>
-                      <button
-                        onClick={() => handleAccion(a.id, "cancelado")}
-                        disabled={gestionando === a.id}
-                        className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
-                      >
-                        {gestionando === a.id ? "..." : "Rechazar"}
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Boton valorar — solo finalizados */}
-                  {a.estado === "finalizado" && !a.ya_valorado && !yaValorados.has(a.id) && a.users && (
-                    <button
-                      onClick={() => setModalValoracion(a)}
-                      className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-orange-50 text-[#F97316] hover:bg-orange-100 transition-colors shrink-0"
-                    >
-                      Valorar
-                    </button>
-                  )}
+                    )}
+                  </div>
                 </div>
+
+                {/* Perfil cliente — destacado en pendientes */}
+                {a.users && (
+                  <div className={`px-4 py-3 border-t flex items-center gap-3 ${
+                    a.estado === "pendiente" ? "bg-yellow-50 border-yellow-100" : "bg-gray-50 border-gray-100"
+                  }`}>
+                    <Link href={`/usuario/${a.users.id}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                      <div className="w-10 h-10 rounded-full bg-[#F97316] overflow-hidden flex items-center justify-center text-white font-bold text-sm shrink-0">
+                        {a.users.avatar_url ? (
+                          <Image src={a.users.avatar_url} alt="" width={40} height={40} className="object-cover w-full h-full" />
+                        ) : (
+                          a.users.nombre[0]?.toUpperCase()
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#F97316] hover:underline">{a.users.nombre} {a.users.apellidos}</p>
+                        {a.users.ciudad && <p className="text-xs text-gray-400">{a.users.ciudad}</p>}
+                      </div>
+                    </Link>
+                    {a.estado === "pendiente" && (
+                      <span className="ml-auto text-xs text-yellow-600 font-medium">Ver perfil antes de confirmar →</span>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
