@@ -93,7 +93,7 @@ export default function Navbar() {
     e.preventDefault();
     setShowSugerencias(false);
     setMenuAbierto(false);
-    router.push(`/herramientas?q=${encodeURIComponent(busqueda)}`);
+    router.push(`/herramientas?nombre=${encodeURIComponent(busqueda)}`);
   }
 
   async function handleLogout() {

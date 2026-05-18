@@ -47,6 +47,9 @@ export default function NuevaHerramientaPage() {
   const [diasMinimos, setDiasMinimos] = useState("");
   const [porcentaje, setPorcentaje] = useState("");
   const [errorDescuento, setErrorDescuento] = useState("");
+  const [horarios, setHorarios] = useState<string[]>([]);
+  const [horaSeleccionada, setHoraSeleccionada] = useState("");
+  const [errorHorario, setErrorHorario] = useState("");
   const fotoPrincipalRef = useRef<HTMLInputElement>(null);
   const fotosAdicionalesRef = useRef<HTMLInputElement>(null);
 
@@ -93,6 +96,18 @@ export default function NuevaHerramientaPage() {
     setPorcentaje("");
   }
 
+  function handleAñadirHorario() {
+    setErrorHorario("");
+    if (!horaSeleccionada) { setErrorHorario("Selecciona una hora"); return; }
+    if (horarios.includes(horaSeleccionada)) { setErrorHorario("Ese horario ya está añadido"); return; }
+    setHorarios([...horarios, horaSeleccionada].sort());
+    setHoraSeleccionada("");
+  }
+
+  function handleEliminarHorario(hora: string) {
+    setHorarios(horarios.filter((h) => h !== hora));
+  }
+
   function handleEliminarDescuento(dias: number) {
     setDescuentos(descuentos.filter((d) => d.dias_minimos !== dias));
   }
@@ -109,6 +124,8 @@ export default function NuevaHerramientaPage() {
     if (!user) return;
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
+
+    if (horarios.length === 0) { setError("Añade al menos un horario de recogida"); setLoading(false); return; }
 
     const { data: herramienta, error: errorHerramienta } = await supabase
       .from("herramientas")
@@ -136,6 +153,12 @@ export default function NuevaHerramientaPage() {
     if (descuentos.length > 0) {
       await supabase.from("descuentos").insert(
         descuentos.map((d) => ({ herramienta_id: herramienta.id, dias_minimos: d.dias_minimos, porcentaje: d.porcentaje }))
+      );
+    }
+
+    if (horarios.length > 0) {
+      await supabase.from("horarios_recogida").insert(
+        horarios.map((h) => ({ herramienta_id: herramienta.id, hora: h }))
       );
     }
 
@@ -333,6 +356,54 @@ export default function NuevaHerramientaPage() {
                 </button>
               </div>
               {errorDescuento && <p className="text-red-500 text-sm bg-red-50 px-4 py-3 rounded-xl">{errorDescuento}</p>}
+            </div>
+
+            {/* Horarios de recogida */}
+            <div className="border-t border-gray-100 pt-6 space-y-4">
+              <div>
+                <h2 className="text-sm font-semibold text-gray-700">Horarios de recogida <span className="font-normal text-red-400">*</span></h2>
+                <p className="text-xs text-gray-400 mt-0.5">Elige los horarios en los que el cliente puede recoger la herramienta</p>
+              </div>
+
+              {horarios.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {horarios.map((h) => (
+                    <div key={h} className="flex items-center gap-2 bg-orange-50 text-[#F97316] text-sm font-semibold px-3 py-1.5 rounded-full">
+                      <span>{h}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleEliminarHorario(h)}
+                        className="text-[#F97316] hover:text-red-500 transition-colors"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex gap-3 items-end">
+                <div className="flex-1">
+                  <label className="text-xs font-medium text-gray-600 block mb-1">Hora</label>
+                  <input
+                    type="time"
+                    value={horaSeleccionada}
+                    onChange={(e) => setHoraSeleccionada(e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#F97316] transition-colors"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleAñadirHorario}
+                  disabled={!horaSeleccionada}
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors disabled:opacity-50 shrink-0"
+                >
+                  Añadir
+                </button>
+              </div>
+              {errorHorario && <p className="text-red-500 text-sm bg-red-50 px-4 py-3 rounded-xl">{errorHorario}</p>}
             </div>
 
             {error && <p className="text-red-500 text-sm bg-red-50 px-4 py-3 rounded-xl">{error}</p>}

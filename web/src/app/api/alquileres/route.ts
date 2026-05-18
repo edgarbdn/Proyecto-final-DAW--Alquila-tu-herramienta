@@ -19,11 +19,11 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { herramienta_id, fecha_inicio, fecha_fin } = body;
+  const { herramienta_id, fecha_inicio, fecha_fin, horario_id } = body;
 
-  if (!herramienta_id || !fecha_inicio || !fecha_fin) {
+  if (!herramienta_id || !fecha_inicio || !fecha_fin || !horario_id) {
     return NextResponse.json(
-      { error: "Faltan campos obligatorios" },
+      { error: "Faltan campos obligatorios, incluyendo el horario de recogida" },
       { status: 400 },
     );
   }
@@ -132,6 +132,7 @@ export async function POST(request: NextRequest) {
       precio_dia: precioDia,
       comision_plataforma: comisionPlataforma,
       precio_final: precioFinal,
+      horario_id,
       estado: "pendiente",
     })
     .select()
@@ -142,10 +143,19 @@ export async function POST(request: NextRequest) {
   }
 
   // Notificar al vendedor
+  const [{ data: cliente }, { data: horario }] = await Promise.all([
+    supabase.from("users").select("nombre, apellidos").eq("id", user.id).single(),
+    supabase.from("horarios_recogida").select("hora").eq("id", horario_id).single(),
+  ]);
+
+  const nombreCliente = cliente ? `${cliente.nombre} ${cliente.apellidos}` : "Un usuario";
+  const horaRecogida = horario?.hora ?? "hora no especificada";
+
   await supabase.from("notificaciones").insert({
     usuario_id: herramienta.vendedor_id,
-    titulo: "Nueva solicitud de alquiler",
-    mensaje: `Tienes una nueva solicitud de alquiler para tu herramienta del ${fecha_inicio} al ${fecha_fin}.`,
+    titulo: `Nueva solicitud de ${nombreCliente}`,
+    mensaje: `Ha solicitado tu herramienta del ${fecha_inicio} al ${fecha_fin}. Horario de recogida: ${horaRecogida}.`,
+    enlace: "/solicitudes",
   });
 
   return NextResponse.json({ alquiler }, { status: 201 });
