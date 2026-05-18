@@ -11,7 +11,7 @@ type Herramienta = {
   descripcion: string;
   precio_dia: number;
   disponible: boolean;
-  categoria: { nombre: string };
+  categoria: { nombre: string } | { nombre: string }[];
   fotos: { url: string; es_principal: boolean }[];
 };
 
@@ -136,7 +136,7 @@ export default function MisHerramientasPage() {
                     className="font-semibold text-gray-900 truncate hover:text-[#F97316] transition-colors">
                     {h.nombre}
                   </Link>
-                  <p className="text-xs text-gray-400 mt-0.5">{h.categoria?.nombre} · {h.precio_dia}€/día</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{Array.isArray(h.categoria) ? h.categoria[0]?.nombre : h.categoria?.nombre} · {h.precio_dia}€/día</p>
                 </div>
 
                 {/* Estado */}

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase";
 import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import ModalValoracion from "@/components/ModalValoracion";
 
 type Alquiler = {
@@ -32,7 +33,7 @@ const ESTADO_STYLES: Record<string, { bg: string; text: string; dot: string; lab
   cancelado:  { bg: "bg-red-100",    text: "text-red-600",    dot: "bg-red-500",    label: "Cancelado" },
 };
 
-export default function MisAlquileresPage() {
+function MisAlquileresContent() {
   const [alquileres, setAlquileres] = useState<Alquiler[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -246,5 +247,13 @@ export default function MisAlquileresPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function MisAlquileresPage() {
+  return (
+    <Suspense fallback={<div className="space-y-3">{[...Array(3)].map((_, i) => <div key={i} className="h-24 bg-gray-100 rounded-2xl animate-pulse" />)}</div>}>
+      <MisAlquileresContent />
+    </Suspense>
   );
 }
