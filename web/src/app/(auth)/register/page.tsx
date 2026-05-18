@@ -60,10 +60,11 @@ export default function RegisterPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-sm font-medium text-gray-700 block mb-1">
+              <label htmlFor="nombre" className="text-sm font-medium text-gray-700 block mb-1">
                 Nombre
               </label>
               <input
+                id="nombre"
                 type="text"
                 placeholder="Tu nombre"
                 value={nombre}
@@ -73,10 +74,11 @@ export default function RegisterPage() {
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-700 block mb-1">
+              <label htmlFor="apellidos" className="text-sm font-medium text-gray-700 block mb-1">
                 Apellidos
               </label>
               <input
+                id="apellidos"
                 type="text"
                 placeholder="Tus apellidos"
                 value={apellidos}
@@ -88,10 +90,11 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">
+            <label htmlFor="email" className="text-sm font-medium text-gray-700 block mb-1">
               Email
             </label>
             <input
+              id="email"
               type="email"
               placeholder="tu@email.com"
               value={email}
@@ -102,10 +105,11 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">
+            <label htmlFor="password" className="text-sm font-medium text-gray-700 block mb-1">
               Contraseña
             </label>
             <input
+              id="password"
               type="password"
               placeholder="Mínimo 6 caracteres"
               value={password}
@@ -116,10 +120,11 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">
+            <label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700 block mb-1">
               Confirmar contraseña
             </label>
             <input
+              id="confirmPassword"
               type="password"
               placeholder="Repite tu contraseña"
               value={confirmPassword}

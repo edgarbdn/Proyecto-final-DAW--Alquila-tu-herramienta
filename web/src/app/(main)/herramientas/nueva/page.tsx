@@ -181,8 +181,9 @@ export default function NuevaHerramientaPage() {
 
             {/* Nombre */}
             <div>
-              <label className="text-sm font-medium text-gray-700 block mb-1">Nombre</label>
+              <label htmlFor="nombre" className="text-sm font-medium text-gray-700 block mb-1">Nombre</label>
               <input
+                id="nombre"
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
                 required
@@ -193,8 +194,9 @@ export default function NuevaHerramientaPage() {
 
             {/* Descripción */}
             <div>
-              <label className="text-sm font-medium text-gray-700 block mb-1">Descripción</label>
+              <label htmlFor="descripcion" className="text-sm font-medium text-gray-700 block mb-1">Descripción</label>
               <textarea
+                id="descripcion"
                 value={descripcion}
                 onChange={(e) => setDescripcion(e.target.value)}
                 rows={3}
@@ -205,8 +207,9 @@ export default function NuevaHerramientaPage() {
 
             {/* Categoría */}
             <div>
-              <label className="text-sm font-medium text-gray-700 block mb-1">Categoría</label>
+              <label htmlFor="categoria" className="text-sm font-medium text-gray-700 block mb-1">Categoría</label>
               <select
+                id="categoria"
                 value={categoriaId}
                 onChange={(e) => setCategoriaId(e.target.value)}
                 required
@@ -221,8 +224,9 @@ export default function NuevaHerramientaPage() {
 
             {/* Precio */}
             <div>
-              <label className="text-sm font-medium text-gray-700 block mb-1">Tu precio por día (€)</label>
+              <label htmlFor="precio" className="text-sm font-medium text-gray-700 block mb-1">Tu precio por día (€)</label>
               <input
+                id="precio"
                 type="number"
                 min="0"
                 step="0.01"
