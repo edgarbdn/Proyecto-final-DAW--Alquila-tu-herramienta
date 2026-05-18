@@ -157,7 +157,7 @@ export default function PerfilPage() {
               (profile.nombre?.[0]?.toUpperCase() ?? "?")
             )}
           </div>
-          <label className="absolute bottom-0 right-0 w-6 h-6 bg-[#F97316] rounded-full flex items-center justify-center cursor-pointer hover:bg-[#EA580C] transition-colors">
+          <label className="absolute bottom-0 right-0 w-6 h-6 bg-[#F97316] rounded-full flex items-center justify-center cursor-pointer hover:bg-[#EA580C] transition-colors" aria-label="Cambiar foto de perfil">
             <svg
               className="w-3 h-3 text-white"
               fill="none"
@@ -190,10 +190,11 @@ export default function PerfilPage() {
         {/* Nombre y apellidos */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">
+            <label htmlFor="nombre" className="text-sm font-medium text-gray-700 block mb-1">
               Nombre
             </label>
             <input
+              id="nombre"
               name="nombre"
               value={profile.nombre}
               onChange={handleChange}
@@ -202,10 +203,11 @@ export default function PerfilPage() {
             />
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">
+            <label htmlFor="apellidos" className="text-sm font-medium text-gray-700 block mb-1">
               Apellidos
             </label>
             <input
+              id="apellidos"
               name="apellidos"
               value={profile.apellidos}
               onChange={handleChange}
@@ -216,10 +218,11 @@ export default function PerfilPage() {
         </div>
 
         <div>
-          <label className="text-sm font-medium text-gray-700 block mb-1">
+          <label htmlFor="telefono" className="text-sm font-medium text-gray-700 block mb-1">
             Teléfono
           </label>
           <input
+            id="telefono"
             name="telefono"
             value={profile.telefono}
             onChange={handleChange}
@@ -229,10 +232,11 @@ export default function PerfilPage() {
         </div>
 
         <div>
-          <label className="text-sm font-medium text-gray-700 block mb-1">
+          <label htmlFor="ciudad" className="text-sm font-medium text-gray-700 block mb-1">
             Ciudad
           </label>
           <input
+            id="ciudad"
             name="ciudad"
             value={profile.ciudad}
             onChange={handleChange}
@@ -242,10 +246,11 @@ export default function PerfilPage() {
         </div>
 
         <div>
-          <label className="text-sm font-medium text-gray-700 block mb-1">
+          <label htmlFor="direccion" className="text-sm font-medium text-gray-700 block mb-1">
             Dirección privada
           </label>
           <input
+            id="direccion"
             name="direccion"
             value={profile.direccion}
             onChange={handleChange}
@@ -255,13 +260,14 @@ export default function PerfilPage() {
         </div>
 
         <div>
-          <label className="text-sm font-medium text-gray-700 block mb-1">
+          <label htmlFor="direccion_publica" className="text-sm font-medium text-gray-700 block mb-1">
             Dirección pública
             <span className="ml-1 text-xs text-gray-400 font-normal">
               (visible para quienes alquilen tus herramientas)
             </span>
           </label>
           <input
+            id="direccion_publica"
             name="direccion_publica"
             value={profile.direccion_publica}
             onChange={handleChange}
