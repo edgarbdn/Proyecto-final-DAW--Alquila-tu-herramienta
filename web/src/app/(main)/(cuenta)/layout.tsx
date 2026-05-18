@@ -61,7 +61,7 @@ export default function CuentaLayout({ children }: { children: React.ReactNode }
           {/* Sidebar */}
           <aside className="w-full md:w-60 shrink-0">
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <nav className="p-2 space-y-0.5">
+              <nav className="p-2 space-y-0.5" aria-label="Menú de cuenta">
                 {NAV_ITEMS.map((item) => {
                   const activo = pathname === item.href;
                   return (
