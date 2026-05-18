@@ -10,7 +10,8 @@ export async function GET(request: NextRequest) {
   const precioMin = searchParams.get("precio_min");
   const precioMax = searchParams.get("precio_max");
   const pagina = parseInt(searchParams.get("pagina") ?? "1");
-  const porPagina = 3;
+  const porPagina = parseInt(searchParams.get("limite") ?? "9");
+  const aleatorio = searchParams.get("aleatorio") === "true";
   const offset = (pagina - 1) * porPagina;
 
   const supabase = createClient();

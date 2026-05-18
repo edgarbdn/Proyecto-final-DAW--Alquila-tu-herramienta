@@ -28,10 +28,12 @@ export default function HerramientasDestacadas() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/herramientas?pagina=1")
+    fetch("/api/herramientas?pagina=1&limite=100")
       .then((r) => r.json())
       .then((data) => {
-        setHerramientas(data.herramientas ?? []);
+        const todas = data.herramientas ?? [];
+        const aleatorias = todas.sort(() => Math.random() - 0.5).slice(0, 3);
+        setHerramientas(aleatorias);
         setLoading(false);
       });
   }, []);
