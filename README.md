@@ -94,4 +94,4 @@ El proyecto está organizado en 5 sprints de 10 días en [GitHub Projects](../..
 
 ## 👤 Autor
 
-Edgar — Proyecto Final de Grado Superior DAW
+Edgar — Proyecto Final de Grado Superior DAW.
