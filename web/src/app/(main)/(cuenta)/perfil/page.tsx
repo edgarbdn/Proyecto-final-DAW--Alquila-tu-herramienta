@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { createClient } from "@/lib/supabase";
 import Image from "next/image";
 import LogoutButton from "@/components/LogoutButton";
+import { useSearchParams } from "next/navigation";
 
 type UserProfile = {
   nombre: string;
@@ -15,7 +16,9 @@ type UserProfile = {
   avatar_url: string;
 };
 
-export default function PerfilPage() {
+function PerfilContent() {
+  const searchParams = useSearchParams();
+  const completar = searchParams.get("completar") === "true";
   const [profile, setProfile] = useState<UserProfile>({
     nombre: "",
     apellidos: "",
@@ -140,6 +143,18 @@ export default function PerfilPage() {
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+      {/* Banner perfil incompleto */}
+      {completar && (
+        <div className="bg-orange-50 border border-orange-200 rounded-2xl px-4 py-3 mb-6 flex items-start gap-3">
+          <svg className="w-5 h-5 text-[#F97316] shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+          </svg>
+          <div>
+            <p className="text-sm font-semibold text-orange-800">Completa tu perfil para publicar herramientas</p>
+            <p className="text-xs text-orange-600 mt-0.5">Necesitas rellenar teléfono, ciudad, dirección privada y dirección pública antes de publicar.</p>
+          </div>
+        </div>
+      )}
       {/* Cabecera */}
       <div className="text-center mb-8">
         {/* Avatar */}
@@ -298,5 +313,13 @@ export default function PerfilPage() {
         <LogoutButton />
       </form>
     </div>
+  );
+}
+
+export default function PerfilPage() {
+  return (
+    <Suspense fallback={<div className="space-y-4">{[...Array(4)].map((_, i) => <div key={i} className="h-12 bg-gray-100 rounded-xl animate-pulse" />)}</div>}>
+      <PerfilContent />
+    </Suspense>
   );
 }

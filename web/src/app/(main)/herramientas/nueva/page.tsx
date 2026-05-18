@@ -56,7 +56,22 @@ export default function NuevaHerramientaPage() {
   useEffect(() => {
     loadCategorias();
     loadComision();
+    verificarPerfil();
   }, []);
+
+  async function verificarPerfil() {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data } = await supabase
+      .from("users")
+      .select("telefono, ciudad, direccion, direccion_publica")
+      .eq("id", user.id)
+      .single();
+    if (!data || !data.telefono || !data.ciudad || !data.direccion || !data.direccion_publica) {
+      router.push("/perfil?completar=true");
+    }
+  }
 
   async function loadCategorias() {
     const supabase = createClient();
