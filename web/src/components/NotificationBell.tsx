@@ -67,6 +67,8 @@ export default function NotificationBell() {
       <button
         onClick={() => setOpen(!open)}
         className="relative p-2 text-gray-600 hover:text-gray-900"
+        aria-label="Ver notificaciones"
+        aria-expanded={open}
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -100,27 +102,28 @@ export default function NotificationBell() {
               No tienes notificaciones
             </p>
           ) : (
-            <ul>
+            <ul role="list">
               {notificaciones.map((n) => (
-                <li
-                  key={n.id}
-                  onClick={() => marcarLeida(n.id, n.enlace)}
-                  className={`px-4 py-3 border-b cursor-pointer hover:bg-gray-50 transition-colors ${
-                    n.leida ? "opacity-60" : "bg-blue-50"
-                  }`}
-                >
-                  <p className="font-semibold text-sm text-gray-800">
-                    {n.titulo}
-                  </p>
-                  <p className="text-sm text-gray-600 mt-1">{n.mensaje}</p>
-                  <p className="text-xs text-gray-400 mt-1">
-                    {new Date(n.created_at).toLocaleDateString("es-ES", {
-                      day: "numeric",
-                      month: "short",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </p>
+                <li key={n.id}>
+                  <button
+                    onClick={() => marcarLeida(n.id, n.enlace)}
+                    className={`w-full text-left px-4 py-3 border-b hover:bg-gray-50 transition-colors ${
+                      n.leida ? "opacity-60" : "bg-blue-50"
+                    }`}
+                  >
+                    <p className="font-semibold text-sm text-gray-800">
+                      {n.titulo}
+                    </p>
+                    <p className="text-sm text-gray-600 mt-1">{n.mensaje}</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {new Date(n.created_at).toLocaleDateString("es-ES", {
+                        day: "numeric",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
+                  </button>
                 </li>
               ))}
             </ul>

@@ -183,7 +183,7 @@ export default function EditarHerramientaPage() {
           <div className="flex-1 w-full bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
             {/* Cabecera */}
             <div className="flex items-center gap-3 mb-8">
-              <Link href="/mis-herramientas" className="text-gray-400 hover:text-[#F97316] transition-colors">
+              <Link href="/mis-herramientas" className="text-gray-400 hover:text-[#F97316] transition-colors" aria-label="Volver a mis herramientas">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
                 </svg>
@@ -196,8 +196,9 @@ export default function EditarHerramientaPage() {
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <label className="text-sm font-medium text-gray-700 block mb-1">Nombre</label>
+                <label htmlFor="nombre" className="text-sm font-medium text-gray-700 block mb-1">Nombre</label>
                 <input
+                  id="nombre"
                   value={nombre}
                   onChange={(e) => setNombre(e.target.value)}
                   required
@@ -206,8 +207,9 @@ export default function EditarHerramientaPage() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-gray-700 block mb-1">Descripción</label>
+                <label htmlFor="descripcion" className="text-sm font-medium text-gray-700 block mb-1">Descripción</label>
                 <textarea
+                  id="descripcion"
                   value={descripcion}
                   onChange={(e) => setDescripcion(e.target.value)}
                   rows={3}
@@ -216,8 +218,9 @@ export default function EditarHerramientaPage() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-gray-700 block mb-1">Categoría</label>
+                <label htmlFor="categoria" className="text-sm font-medium text-gray-700 block mb-1">Categoría</label>
                 <select
+                  id="categoria"
                   value={categoriaId}
                   onChange={(e) => setCategoriaId(e.target.value)}
                   required
@@ -229,8 +232,9 @@ export default function EditarHerramientaPage() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-gray-700 block mb-1">Tu precio por día (€)</label>
+                <label htmlFor="precio" className="text-sm font-medium text-gray-700 block mb-1">Tu precio por día (€)</label>
                 <input
+                  id="precio"
                   type="number"
                   min="0"
                   step="0.01"
