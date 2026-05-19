@@ -214,7 +214,7 @@ export default function NuevaHerramientaPage() {
                 id="descripcion"
                 value={descripcion}
                 onChange={(e) => setDescripcion(e.target.value)}
-                rows={3}
+                rows={6}
                 placeholder="Describe el estado, características y condiciones de uso..."
                 className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 outline-none focus:border-[#F97316] transition-colors placeholder-gray-400 resize-none"
               />
