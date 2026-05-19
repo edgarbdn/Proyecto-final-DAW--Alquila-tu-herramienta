@@ -234,17 +234,30 @@ export default function DetalleHerramientaPage() {
         </div>
       </div>
 
-      {/* Sección alquiler */}
-      <div className="mt-10">
-        {exito ? (
-          <div className="bg-green-50 border border-green-200 rounded-2xl p-6">
-            <p className="font-bold text-green-700 text-lg">¡Solicitud enviada!</p>
-            <p className="text-green-600 text-sm mt-1">El propietario recibirá tu solicitud y la confirmará en breve.</p>
-            <Link href="/mis-alquileres" className="inline-flex items-center gap-1.5 text-sm font-semibold text-green-700 hover:text-green-800 mt-3 transition-colors">
-              Ver mis alquileres →
+      {/* Modal solicitud enviada */}
+      {exito && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/50">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-8 text-center">
+            <div className="w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-[#F97316]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">¡Solicitud enviada!</h2>
+            <p className="text-sm text-gray-500 mb-6">El propietario recibirá tu solicitud y la confirmará en breve. Te notificaremos cuando haya una respuesta.</p>
+            <Link
+              href="/mis-alquileres"
+              className="block w-full bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold py-3 rounded-xl transition-colors"
+            >
+              Ver mis alquileres
             </Link>
           </div>
-        ) : !herramienta.disponible ? (
+        </div>
+      )}
+
+      {/* Sección alquiler */}
+      <div className="mt-10">
+        {!herramienta.disponible ? (
           <div className="bg-gray-50 rounded-2xl p-6 text-center">
             <p className="text-gray-500 font-semibold">Esta herramienta no está disponible actualmente</p>
           </div>
