@@ -40,12 +40,40 @@ export default function SolicitudesPage() {
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setToken(session.access_token);
-        loadAlquileres(session.access_token);
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    async function init() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      setToken(session.access_token);
+      loadAlquileres(session.access_token);
+
+      channel = supabase.channel(`solicitudes-${session.user.id}-${Math.random()}`);
+      channel.on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "alquileres" },
+        () => { loadAlquileres(session.access_token); },
+      );
+      channel.on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "alquileres" },
+        (payload) => {
+          setAlquileres((prev) =>
+            prev.map((a) => a.id === payload.new.id ? { ...a, estado: payload.new.estado } : a)
+          );
+        },
+      );
+      channel.subscribe();
+    }
+
+    init();
+
+    return () => {
+      if (channel) {
+        channel.unsubscribe();
+        supabase.removeChannel(channel);
       }
-    });
+    };
   }, []);
 
   async function loadAlquileres(t: string) {

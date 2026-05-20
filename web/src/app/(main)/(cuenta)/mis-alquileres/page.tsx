@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase";
 import Link from "next/link";
 import Image from "next/image";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Suspense } from "react";
 import ModalValoracion from "@/components/ModalValoracion";
 
@@ -43,17 +43,63 @@ function MisAlquileresContent() {
   const [modalValoracion, setModalValoracion] = useState<Alquiler | null>(null);
   const [yaValorados, setYaValorados] = useState<Set<string>>(new Set());
   const searchParams = useSearchParams();
-  const pagoEstado = searchParams.get("pago");
-  const [modalPago, setModalPago] = useState(pagoEstado === "exitoso");
+  const router = useRouter();
+  const [modalPago, setModalPago] = useState(false);
+  const [pagoCancelado, setPagoCancelado] = useState(false);
+  const procesadoPago = useRef(false);
+
+  // Leer ?pago= una sola vez al montar y limpiar la URL
+  useEffect(() => {
+    if (procesadoPago.current) return;
+    procesadoPago.current = true;
+    const pago = searchParams.get("pago");
+    if (pago === "exitoso") {
+      setModalPago(true);
+      router.replace("/mis-alquileres");
+    } else if (pago === "cancelado") {
+      setPagoCancelado(true);
+      router.replace("/mis-alquileres");
+    }
+  }, []);
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setToken(session.access_token);
-        loadAlquileres();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    async function init() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      setToken(session.access_token);
+      loadAlquileres();
+
+      channel = supabase.channel(`mis-alquileres-${session.user.id}-${Math.random()}`);
+      channel.on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "alquileres",
+          filter: `cliente_id=eq.${session.user.id}`,
+        },
+        (payload) => {
+          setAlquileres((prev) =>
+            prev.map((a) =>
+              a.id === payload.new.id ? { ...a, estado: payload.new.estado } : a
+            ),
+          );
+        },
+      );
+      channel.subscribe();
+    }
+
+    init();
+
+    return () => {
+      if (channel) {
+        channel.unsubscribe();
+        supabase.removeChannel(channel);
       }
-    });
+    };
   }, []);
 
   async function loadAlquileres() {
@@ -118,9 +164,14 @@ function MisAlquileresContent() {
       )}
 
       {/* Mensaje pago cancelado */}
-      {pagoEstado === "cancelado" && (
-        <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3">
+      {pagoCancelado && (
+        <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 flex items-center justify-between">
           <p className="text-red-600 font-semibold text-sm">El pago fue cancelado. Puedes intentarlo de nuevo.</p>
+          <button onClick={() => setPagoCancelado(false)} className="text-red-400 hover:text-red-600 ml-4">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
       )}
 

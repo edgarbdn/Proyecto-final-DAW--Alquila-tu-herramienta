@@ -22,12 +22,43 @@ export default function NotificationBell() {
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setToken(session.access_token);
-        loadNotificaciones(session.access_token);
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    async function init() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      setToken(session.access_token);
+      loadNotificaciones(session.access_token);
+
+      // Primero crear y configurar el canal, luego suscribirse
+      channel = supabase.channel(`notif-${session.user.id}-${Math.random()}`);
+      channel.on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notificaciones",
+          filter: `usuario_id=eq.${session.user.id}`,
+        },
+        (payload) => {
+          const nueva = payload.new as Notificacion;
+          if (!nueva.leida) {
+            setNotificaciones((prev) => [nueva, ...prev]);
+          }
+        },
+      );
+      channel.subscribe();
+    }
+
+    init();
+
+    return () => {
+      if (channel) {
+        channel.unsubscribe();
+        supabase.removeChannel(channel);
       }
-    });
+    };
   }, []);
 
   // Cerrar dropdown al hacer click fuera

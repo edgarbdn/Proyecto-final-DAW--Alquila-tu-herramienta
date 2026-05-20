@@ -3,11 +3,9 @@ import { createMiddlewareClient } from "@/lib/supabase";
 
 export async function proxy(request: NextRequest) {
   const { supabase, response } = createMiddlewareClient(request);
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
 
-  //Guardo la ruta en path para luego usarla en las condiciones.
+  const { data: { session } } = await supabase.auth.getSession();
+
   const path = request.nextUrl.pathname;
 
   // Si estás logueado e intentas ir a /login o /register, redirige a /
@@ -24,6 +22,7 @@ export async function proxy(request: NextRequest) {
     "/solicitudes",
     "/notificaciones",
   ];
+
   if (!session && rutasProtegidas.some((r) => path.startsWith(r))) {
     return NextResponse.redirect(new URL("/login", request.url));
   }

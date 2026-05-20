@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSideClient } from "@/lib/supabase-server";
+import { apiError, ERROR_MESSAGES } from "@/lib/api-error";
 
 async function verificarAdmin(token: string) {
   const supabase = await createServerSideClient(token);
@@ -12,9 +13,9 @@ async function verificarAdmin(token: string) {
 
 export async function GET(request: NextRequest) {
   const token = request.headers.get("Authorization")?.replace("Bearer ", "");
-  if (!token) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+  if (!token) return NextResponse.json({ error: ERROR_MESSAGES.NO_AUTENTICADO }, { status: 401 });
   const user = await verificarAdmin(token);
-  if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+  if (!user) return NextResponse.json({ error: ERROR_MESSAGES.NO_AUTORIZADO }, { status: 403 });
 
   const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -26,15 +27,15 @@ export async function GET(request: NextRequest) {
     .select("id, nombre, precio_dia, disponible, created_at, users!herramientas_vendedor_id_fkey(nombre, apellidos)")
     .order("created_at", { ascending: false });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return apiError("GET /admin/herramientas", error, 500, ERROR_MESSAGES.ERROR_SERVIDOR);
   return NextResponse.json({ herramientas });
 }
 
 export async function PATCH(request: NextRequest) {
   const token = request.headers.get("Authorization")?.replace("Bearer ", "");
-  if (!token) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+  if (!token) return NextResponse.json({ error: ERROR_MESSAGES.NO_AUTENTICADO }, { status: 401 });
   const user = await verificarAdmin(token);
-  if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+  if (!user) return NextResponse.json({ error: ERROR_MESSAGES.NO_AUTORIZADO }, { status: 403 });
 
   const { herramienta_id, disponible } = await request.json();
 
@@ -48,6 +49,6 @@ export async function PATCH(request: NextRequest) {
     .update({ disponible })
     .eq("id", herramienta_id);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return apiError("PATCH /admin/herramientas", error, 500, ERROR_MESSAGES.ERROR_SERVIDOR);
   return NextResponse.json({ ok: true });
 }

@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSideClient } from "@/lib/supabase-server";
+import { apiError, ERROR_MESSAGES } from "@/lib/api-error";
 
 async function verificarAdmin(token: string) {
   const supabase = await createServerSideClient(token);
@@ -33,6 +34,6 @@ export async function GET(request: NextRequest) {
     `)
     .order("created_at", { ascending: false });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return apiError("GET /admin/pagos", error, 500, ERROR_MESSAGES.ERROR_SERVIDOR);
   return NextResponse.json({ pagos });
 }

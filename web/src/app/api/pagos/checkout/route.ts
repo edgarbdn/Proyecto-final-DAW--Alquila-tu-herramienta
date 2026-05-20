@@ -1,6 +1,7 @@
 import { stripe } from "@/lib/stripe";
 import { createServerSideClient } from "@/lib/supabase-server";
 import { NextRequest, NextResponse } from "next/server";
+import { apiError, ERROR_MESSAGES } from "@/lib/api-error";
 
 export async function POST(request: NextRequest) {
   const authHeader = request.headers.get("Authorization");
@@ -50,6 +51,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  if (!alquiler.precio_final || alquiler.precio_final <= 0) {
+    return NextResponse.json(
+      { error: "El importe del alquiler no es válido" },
+      { status: 400 },
+    );
+  }
+
   const herramienta = (Array.isArray(alquiler.herramientas) ? alquiler.herramientas[0] : alquiler.herramientas) as { nombre: string };
 
   // Crear sesión de Stripe Checkout
@@ -68,8 +76,8 @@ export async function POST(request: NextRequest) {
       },
     ],
     mode: "payment",
-    success_url: `${process.env.NEXT_PUBLIC_URL}/mis-alquileres?pago=exitoso`,
-    cancel_url: `${process.env.NEXT_PUBLIC_URL}/mis-alquileres?pago=cancelado`,
+    success_url: `${process.env.NEXT_PUBLIC_URL}/pago/exitoso`,
+    cancel_url: `${process.env.NEXT_PUBLIC_URL}/pago/cancelado`,
     metadata: {
       alquiler_id,
       cliente_id: user.id,
