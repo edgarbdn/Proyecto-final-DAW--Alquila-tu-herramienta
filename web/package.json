@@ -6,7 +6,17 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:integration": "vitest run tests/integration",
+    "test:security": "vitest run tests/security",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:perf": "k6 run tests/performance/load.js",
+    "test:setup": "tsx tests/helpers/setup-users.ts",
+    "test:fix-admin": "tsx tests/helpers/fix-admin-role.ts",
+    "test:cleanup": "tsx tests/helpers/cleanup-users.ts"
   },
   "dependencies": {
     "@stripe/stripe-js": "^9.4.0",
@@ -21,13 +31,17 @@
     "stripe": "^22.1.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.49.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "dotenv": "^16.4.7",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "tsx": "^4.19.2",
+    "typescript": "^5",
+    "vitest": "^2.1.8"
   }
 }

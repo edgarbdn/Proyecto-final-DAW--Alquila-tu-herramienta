@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { createServerSideClient } from "@/lib/supabase-server";
 import { NextRequest, NextResponse } from "next/server";
+import { apiError, ERROR_MESSAGES } from "@/lib/api-error";
 
 export async function GET(request: NextRequest) {
   const token = request.headers.get("Authorization")?.replace("Bearer ", "");
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
     .eq("cliente_id", user.id)
     .order("created_at", { ascending: false });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return apiError("GET /mis-alquileres", error, 500, ERROR_MESSAGES.ERROR_SERVIDOR);
 
   // Buscar alquileres ya valorados por este usuario
   const { data: valoraciones } = await supabaseAdmin

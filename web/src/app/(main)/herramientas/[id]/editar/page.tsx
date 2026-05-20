@@ -41,6 +41,11 @@ export default function EditarHerramientaPage() {
   const [subiendoFotos, setSubiendoFotos] = useState(false);
   const [errorFotos, setErrorFotos] = useState("");
   const fotosInputRef = useRef<HTMLInputElement>(null);
+  // Foto principal nueva
+  const [nuevaFotoPrincipal, setNuevaFotoPrincipal] = useState<File | null>(null);
+  const [nuevaFotoPrincipalPreview, setNuevaFotoPrincipalPreview] = useState<string | null>(null);
+  const [subiendoPrincipal, setSubiendoPrincipal] = useState(false);
+  const fotoPrincipalRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadCategorias();
@@ -137,16 +142,38 @@ export default function EditarHerramientaPage() {
   async function handleAñadirDescuento() {
     setErrorDescuento("");
     setLoadingDescuento(true);
+
+    const dias = parseInt(diasMinimos);
+    const pct = parseFloat(porcentaje);
+
+    if (!diasMinimos || isNaN(dias) || dias < 2) { setErrorDescuento("Los días mínimos deben ser 2 o más"); setLoadingDescuento(false); return; }
+    if (!porcentaje || isNaN(pct) || pct < 1 || pct > 99) { setErrorDescuento("El descuento debe estar entre 1% y 99%"); setLoadingDescuento(false); return; }
+
     const supabase = createClient();
     const { data: { session } } = await supabase.auth.getSession();
     const res = await fetch(`/api/herramientas/${id}/descuentos`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
-      body: JSON.stringify({ dias_minimos: parseInt(diasMinimos), porcentaje: parseFloat(porcentaje) }),
+      body: JSON.stringify({ dias_minimos: dias, porcentaje: pct }),
     });
     const data = await res.json();
-    if (!res.ok) setErrorDescuento(data.error);
-    else { setDiasMinimos(""); setPorcentaje(""); loadDescuentos(); }
+    if (!res.ok) {
+      // Traducir errores técnicos a mensajes comprensibles
+      const msg = data.error ?? "";
+      if (msg.includes("integer") || msg.includes("syntax") || msg.includes("invalid input")) {
+        setErrorDescuento("El valor introducido no es válido. Usa solo números enteros para los días.");
+      } else if (msg.includes("duplicate") || msg.includes("unique")) {
+        setErrorDescuento("Ya existe un descuento con esos días mínimos.");
+      } else if (msg.includes("foreign key") || msg.includes("violates")) {
+        setErrorDescuento("Error al guardar el descuento. Inténtalo de nuevo.");
+      } else {
+        setErrorDescuento("Error al añadir el descuento. Comprueba los datos e inténtalo de nuevo.");
+      }
+    } else {
+      setDiasMinimos("");
+      setPorcentaje("");
+      loadDescuentos();
+    }
     setLoadingDescuento(false);
   }
 
@@ -200,6 +227,68 @@ export default function EditarHerramientaPage() {
 
     setFotosExistentes((prev) => prev.filter((f) => f.id !== foto.id));
     setEliminandoFoto(null);
+  }
+
+  function handleSeleccionarNuevaFotoPrincipal(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    setNuevaFotoPrincipal(file);
+    setNuevaFotoPrincipalPreview(file ? URL.createObjectURL(file) : null);
+  }
+
+  async function handleSubirNuevaFotoPrincipal() {
+    if (!nuevaFotoPrincipal) return;
+    setSubiendoPrincipal(true);
+    setErrorFotos("");
+    const supabase = createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+    // Eliminar foto principal anterior de Storage y BD
+    const principalAnterior = fotosExistentes.find((f) => f.es_principal);
+    if (principalAnterior) {
+      const prefix = `${supabaseUrl}/storage/v1/object/public/fotos-herramientas/`;
+      const storagePath = principalAnterior.url.startsWith(prefix)
+        ? principalAnterior.url.slice(prefix.length)
+        : null;
+      if (storagePath) {
+        await supabase.storage.from("fotos-herramientas").remove([storagePath]);
+      }
+      await supabase.from("fotos").delete().eq("id", principalAnterior.id);
+    }
+
+    // Subir nueva foto principal
+    const ext = nuevaFotoPrincipal.name.split(".").pop();
+    const path = `${id}/principal-${Date.now()}.${ext}`;
+    const formData = new FormData();
+    formData.append("", nuevaFotoPrincipal);
+    const res = await fetch(`${supabaseUrl}/storage/v1/object/fotos-herramientas/${path}`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${session.access_token}`, apikey: anonKey },
+      body: formData,
+    });
+
+    if (res.ok) {
+      const url = `${supabaseUrl}/storage/v1/object/public/fotos-herramientas/${path}`;
+      await supabase.from("fotos").insert({
+        herramienta_id: id,
+        url,
+        es_principal: true,
+        orden: 0,
+      });
+    } else {
+      setErrorFotos("Error al subir la foto principal");
+      setSubiendoPrincipal(false);
+      return;
+    }
+
+    setNuevaFotoPrincipal(null);
+    setNuevaFotoPrincipalPreview(null);
+    if (fotoPrincipalRef.current) fotoPrincipalRef.current.value = "";
+    await loadFotos();
+    setSubiendoPrincipal(false);
   }
 
   function handleSeleccionarFotosNuevas(e: React.ChangeEvent<HTMLInputElement>) {
@@ -256,6 +345,21 @@ export default function EditarHerramientaPage() {
     setLoading(true);
     setError("");
     setSuccess("");
+
+    // Validar que existe foto principal
+    const tieneFotoPrincipal = fotosExistentes.some((f) => f.es_principal);
+    if (!tieneFotoPrincipal) {
+      setError("La foto principal es obligatoria. Añade una foto principal antes de guardar.");
+      setLoading(false);
+      return;
+    }
+
+    if (!precioDia || parseFloat(precioDia) <= 0) {
+      setError("El precio debe ser mayor que 0");
+      setLoading(false);
+      return;
+    }
+
     const supabase = createClient();
     const { error } = await supabase
       .from("herramientas")
@@ -339,7 +443,7 @@ export default function EditarHerramientaPage() {
                 <input
                   id="precio"
                   type="number"
-                  min="0"
+                  min="0.01"
                   step="0.01"
                   value={precioDia}
                   onChange={(e) => setPrecioDia(e.target.value)}
@@ -359,102 +463,183 @@ export default function EditarHerramientaPage() {
             </form>
 
             {/* Fotos */}
-            <div className="border-t border-gray-100 mt-8 pt-8 space-y-4">
+            <div className="border-t border-gray-100 mt-8 pt-8 space-y-6">
               <div>
                 <h2 className="text-sm font-semibold text-gray-700">Fotos</h2>
                 <p className="text-xs text-gray-400 mt-0.5">Gestiona las imágenes de tu herramienta</p>
               </div>
 
-              {/* Fotos existentes */}
-              {fotosExistentes.length > 0 ? (
-                <div className="flex flex-wrap gap-3">
-                  {fotosExistentes.map((foto) => (
-                    <div key={foto.id} className="relative w-24 h-24 rounded-xl overflow-hidden group">
-                      <Image src={foto.url} alt="Foto" fill className="object-cover" />
-                      {foto.es_principal && (
-                        <span className="absolute top-1 left-1 bg-[#F97316] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md leading-tight">Principal</span>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => handleEliminarFoto(foto)}
-                        disabled={eliminandoFoto === foto.id}
-                        className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                      >
-                        {eliminandoFoto === foto.id ? (
-                          <svg className="w-5 h-5 text-white animate-spin" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                          </svg>
-                        ) : (
-                          <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                          </svg>
-                        )}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-gray-400">No hay fotos añadidas aún.</p>
-              )}
+              {/* FOTO PRINCIPAL */}
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-gray-700 block">
+                  Foto principal <span className="text-red-400">*</span>
+                </label>
 
-              {/* Añadir fotos nuevas */}
-              <div>
-                <label className="text-xs font-medium text-gray-600 block mb-2">Añadir fotos</label>
-                <div
-                  onClick={() => fotosInputRef.current?.click()}
-                  className="border-2 border-dashed border-gray-200 rounded-xl p-4 cursor-pointer hover:border-[#F97316] transition-colors"
-                >
-                  {fotosNuevasPreview.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {fotosNuevasPreview.map((src, i) => (
-                        <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden">
-                          <Image src={src} alt={`Nueva foto ${i + 1}`} fill className="object-cover" />
-                        </div>
-                      ))}
+                {/* Foto principal actual */}
+                {(() => {
+                  const principal = fotosExistentes.find((f) => f.es_principal);
+                  return principal ? (
+                    <div className="flex items-center gap-4">
+                      <div className="relative w-28 h-28 rounded-xl overflow-hidden shrink-0 group">
+                        <Image src={principal.url} alt="Foto principal" fill className="object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => handleEliminarFoto(principal)}
+                          disabled={eliminandoFoto === principal.id}
+                          className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                        >
+                          {eliminandoFoto === principal.id ? (
+                            <svg className="w-5 h-5 text-white animate-spin" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                            </svg>
+                          ) : (
+                            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                            </svg>
+                          )}
+                        </button>
+                      </div>
+                      <div>
+                        <span className="inline-flex items-center gap-1 bg-[#F97316] text-white text-xs font-bold px-2 py-1 rounded-lg mb-2">
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          Foto principal actual
+                        </span>
+                        <p className="text-xs text-gray-400">Pasa el ratón por encima para eliminarla</p>
+                      </div>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-3">
-                      <svg className="w-6 h-6 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.5v15m7.5-7.5h-15" />
-                      </svg>
-                      <p className="text-sm text-gray-400">Seleccionar imágenes (múltiple)</p>
+                    <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                      <p className="text-sm text-red-600 font-medium">No hay foto principal. Añade una antes de guardar.</p>
                     </div>
+                  );
+                })()}
+
+                {/* Cambiar / añadir foto principal */}
+                <div>
+                  <p className="text-xs text-gray-500 mb-2">
+                    {fotosExistentes.some((f) => f.es_principal) ? "Cambiar foto principal" : "Añadir foto principal"}
+                  </p>
+                  <div
+                    onClick={() => fotoPrincipalRef.current?.click()}
+                    className="border-2 border-dashed border-gray-200 rounded-xl p-4 cursor-pointer hover:border-[#F97316] transition-colors flex items-center gap-4"
+                  >
+                    {nuevaFotoPrincipalPreview ? (
+                      <div className="relative w-20 h-20 rounded-lg overflow-hidden shrink-0">
+                        <Image src={nuevaFotoPrincipalPreview} alt="Nueva principal" fill className="object-cover" />
+                      </div>
+                    ) : (
+                      <div className="w-20 h-20 rounded-lg bg-gray-50 flex items-center justify-center shrink-0">
+                        <svg className="w-8 h-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                        </svg>
+                      </div>
+                    )}
+                    <p className="text-sm text-gray-400">
+                      {nuevaFotoPrincipal ? nuevaFotoPrincipal.name : "Seleccionar imagen"}
+                    </p>
+                  </div>
+                  <input
+                    ref={fotoPrincipalRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleSeleccionarNuevaFotoPrincipal}
+                    className="hidden"
+                  />
+                  {nuevaFotoPrincipal && (
+                    <button
+                      type="button"
+                      onClick={handleSubirNuevaFotoPrincipal}
+                      disabled={subiendoPrincipal}
+                      className="mt-3 inline-flex items-center gap-2 bg-[#F97316] hover:bg-[#EA580C] text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors disabled:opacity-60"
+                    >
+                      {subiendoPrincipal ? (
+                        <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" /></svg>Subiendo...</>
+                      ) : (
+                        <><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" /></svg>
+                        {fotosExistentes.some((f) => f.es_principal) ? "Reemplazar foto principal" : "Subir foto principal"}</>
+                      )}
+                    </button>
                   )}
                 </div>
-                <input
-                  ref={fotosInputRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleSeleccionarFotosNuevas}
-                  className="hidden"
-                />
-                {fotosNuevas.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={handleSubirFotosNuevas}
-                    disabled={subiendoFotos}
-                    className="mt-3 inline-flex items-center gap-2 bg-[#F97316] hover:bg-[#EA580C] text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors disabled:opacity-60"
-                  >
-                    {subiendoFotos ? (
-                      <>
-                        <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                        </svg>
-                        Subiendo...
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-                        </svg>
-                        Subir {fotosNuevas.length} foto{fotosNuevas.length !== 1 ? "s" : ""}
-                      </>
-                    )}
-                  </button>
+              </div>
+
+              {/* FOTOS ADICIONALES */}
+              <div className="space-y-3 border-t border-gray-100 pt-4">
+                <label className="text-sm font-medium text-gray-700 block">Fotos adicionales</label>
+
+                {/* Fotos adicionales existentes */}
+                {fotosExistentes.filter((f) => !f.es_principal).length > 0 ? (
+                  <div className="flex flex-wrap gap-3">
+                    {fotosExistentes.filter((f) => !f.es_principal).map((foto) => (
+                      <div key={foto.id} className="relative w-24 h-24 rounded-xl overflow-hidden group">
+                        <Image src={foto.url} alt="Foto" fill className="object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => handleEliminarFoto(foto)}
+                          disabled={eliminandoFoto === foto.id}
+                          className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                        >
+                          {eliminandoFoto === foto.id ? (
+                            <svg className="w-5 h-5 text-white animate-spin" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                            </svg>
+                          ) : (
+                            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                            </svg>
+                          )}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-400">No hay fotos adicionales.</p>
                 )}
+
+                {/* Añadir fotos adicionales */}
+                <div>
+                  <div
+                    onClick={() => fotosInputRef.current?.click()}
+                    className="border-2 border-dashed border-gray-200 rounded-xl p-4 cursor-pointer hover:border-[#F97316] transition-colors"
+                  >
+                    {fotosNuevasPreview.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {fotosNuevasPreview.map((src, i) => (
+                          <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden">
+                            <Image src={src} alt={`Nueva foto ${i + 1}`} fill className="object-cover" />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-3">
+                        <svg className="w-6 h-6 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.5v15m7.5-7.5h-15" />
+                        </svg>
+                        <p className="text-sm text-gray-400">Seleccionar imágenes (múltiple)</p>
+                      </div>
+                    )}
+                  </div>
+                  <input ref={fotosInputRef} type="file" accept="image/*" multiple onChange={handleSeleccionarFotosNuevas} className="hidden" />
+                  {fotosNuevas.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleSubirFotosNuevas}
+                      disabled={subiendoFotos}
+                      className="mt-3 inline-flex items-center gap-2 bg-[#F97316] hover:bg-[#EA580C] text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors disabled:opacity-60"
+                    >
+                      {subiendoFotos ? (
+                        <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" /></svg>Subiendo...</>
+                      ) : (
+                        <><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" /></svg>
+                        Subir {fotosNuevas.length} foto{fotosNuevas.length !== 1 ? "s" : ""}</>
+                      )}
+                    </button>
+                  )}
+                </div>
               </div>
 
               {errorFotos && <p className="text-red-500 text-sm bg-red-50 px-4 py-3 rounded-xl">{errorFotos}</p>}
