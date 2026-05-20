@@ -4,10 +4,7 @@ import { createMiddlewareClient } from "@/lib/supabase";
 export async function proxy(request: NextRequest) {
   const { supabase, response } = createMiddlewareClient(request);
 
-  // getUser() verifica la sesión contra el servidor de Supabase
-  // evita race conditions al volver de Stripe u otras redirecciones externas
-  const { data: { user } } = await supabase.auth.getUser();
-  const session = user ? { user } : null;
+  const { data: { session } } = await supabase.auth.getSession();
 
   const path = request.nextUrl.pathname;
 
@@ -26,11 +23,7 @@ export async function proxy(request: NextRequest) {
     "/notificaciones",
   ];
 
-  // Al volver de Stripe, la cookie puede no estar lista en el primer request.
-  // Permitimos el acceso — la página carga en cliente y verifica la sesión por su cuenta.
-  const esVueltaDePago = path === "/mis-alquileres" && request.nextUrl.searchParams.has("pago");
-
-  if (!session && !esVueltaDePago && rutasProtegidas.some((r) => path.startsWith(r))) {
+  if (!session && rutasProtegidas.some((r) => path.startsWith(r))) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
@@ -49,7 +42,7 @@ export async function proxy(request: NextRequest) {
     const { data: perfil } = await supabase
       .from("users")
       .select("rol")
-      .eq("id", user!.id)
+      .eq("id", session.user.id)
       .single();
 
     if (perfil?.rol !== "admin") {
