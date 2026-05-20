@@ -1,5 +1,6 @@
 import { createServerSideClient } from "@/lib/supabase-server";
 import { NextRequest, NextResponse } from "next/server";
+import { apiError, ERROR_MESSAGES } from "@/lib/api-error";
 
 export async function POST(request: NextRequest) {
   const authHeader = request.headers.get("Authorization");
@@ -138,9 +139,7 @@ export async function POST(request: NextRequest) {
     .select()
     .single();
 
-  if (errorAlquiler) {
-    return NextResponse.json({ error: errorAlquiler.message }, { status: 500 });
-  }
+  if (errorAlquiler) return apiError("POST /alquileres", errorAlquiler, 500, ERROR_MESSAGES.ERROR_SERVIDOR);
 
   // Notificar al vendedor
   const [{ data: cliente }, { data: horario }] = await Promise.all([
