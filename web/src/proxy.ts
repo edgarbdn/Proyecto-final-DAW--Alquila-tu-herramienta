@@ -25,7 +25,12 @@ export async function proxy(request: NextRequest) {
     "/solicitudes",
     "/notificaciones",
   ];
-  if (!session && rutasProtegidas.some((r) => path.startsWith(r))) {
+
+  // Al volver de Stripe, la cookie puede no estar lista en el primer request.
+  // Permitimos el acceso — la página carga en cliente y verifica la sesión por su cuenta.
+  const esVueltaDePago = path === "/mis-alquileres" && request.nextUrl.searchParams.has("pago");
+
+  if (!session && !esVueltaDePago && rutasProtegidas.some((r) => path.startsWith(r))) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
