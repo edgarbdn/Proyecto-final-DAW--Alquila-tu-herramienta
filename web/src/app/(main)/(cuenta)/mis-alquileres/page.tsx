@@ -44,11 +44,12 @@ function MisAlquileresContent() {
   const [yaValorados, setYaValorados] = useState<Set<string>>(new Set());
   const searchParams = useSearchParams();
   const pagoEstado = searchParams.get("pago");
-  const [modalPago, setModalPago] = useState(pagoEstado === "exitoso");
+  const [modalPago, setModalPago] = useState(false);
 
-  // Limpiar el parámetro ?pago= de la URL nada más montarse
+  // Mostrar el modal UNA sola vez y limpiar el parámetro de la URL
   useEffect(() => {
-    if (pagoEstado) {
+    if (pagoEstado === "exitoso") {
+      setModalPago(true);
       const url = new URL(window.location.href);
       url.searchParams.delete("pago");
       window.history.replaceState({}, "", url.toString());
@@ -155,7 +156,7 @@ function MisAlquileresContent() {
       )}
 
       {/* Mensaje pago cancelado */}
-      {pagoEstado === "cancelado" && (
+      {pagoEstado === "cancelado" && !modalPago && (
         <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3">
           <p className="text-red-600 font-semibold text-sm">El pago fue cancelado. Puedes intentarlo de nuevo.</p>
         </div>
