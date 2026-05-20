@@ -66,37 +66,39 @@ function MisAlquileresContent() {
     const supabase = createClient();
     let channel: ReturnType<typeof supabase.channel> | null = null;
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    async function init() {
+      const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
       setToken(session.access_token);
       loadAlquileres();
 
-      // Realtime: el vendedor confirma, rechaza o cambia el estado
-      channel = supabase
-        .channel("mis-alquileres-realtime")
-        .on(
-          "postgres_changes",
-          {
-            event: "UPDATE",
-            schema: "public",
-            table: "alquileres",
-            filter: `cliente_id=eq.${session.user.id}`,
-          },
-          (payload) => {
-            setAlquileres((prev) =>
-              prev.map((a) =>
-                a.id === payload.new.id
-                  ? { ...a, estado: payload.new.estado }
-                  : a,
-              ),
-            );
-          },
-        )
-        .subscribe();
-    });
+      channel = supabase.channel(`mis-alquileres-${session.user.id}-${Math.random()}`);
+      channel.on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "alquileres",
+          filter: `cliente_id=eq.${session.user.id}`,
+        },
+        (payload) => {
+          setAlquileres((prev) =>
+            prev.map((a) =>
+              a.id === payload.new.id ? { ...a, estado: payload.new.estado } : a
+            ),
+          );
+        },
+      );
+      channel.subscribe();
+    }
+
+    init();
 
     return () => {
-      if (channel) supabase.removeChannel(channel);
+      if (channel) {
+        channel.unsubscribe();
+        supabase.removeChannel(channel);
+      }
     };
   }, []);
 

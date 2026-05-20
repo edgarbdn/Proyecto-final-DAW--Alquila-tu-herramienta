@@ -7,8 +7,6 @@ export default function PagoExitoso() {
   const router = useRouter();
 
   useEffect(() => {
-    // Pequeño delay para asegurar que las cookies de sesión se propagan
-    // antes de navegar a una ruta protegida
     const timer = setTimeout(() => {
       router.replace("/mis-alquileres?pago=exitoso");
     }, 1500);
