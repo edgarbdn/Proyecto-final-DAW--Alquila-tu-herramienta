@@ -48,12 +48,40 @@ function MisAlquileresContent() {
 
   useEffect(() => {
     const supabase = createClient();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setToken(session.access_token);
-        loadAlquileres();
-      }
+      if (!session) return;
+      setToken(session.access_token);
+      loadAlquileres();
+
+      // Realtime: el vendedor confirma, rechaza o cambia el estado
+      channel = supabase
+        .channel("mis-alquileres-realtime")
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "alquileres",
+            filter: `cliente_id=eq.${session.user.id}`,
+          },
+          (payload) => {
+            setAlquileres((prev) =>
+              prev.map((a) =>
+                a.id === payload.new.id
+                  ? { ...a, estado: payload.new.estado }
+                  : a,
+              ),
+            );
+          },
+        )
+        .subscribe();
     });
+
+    return () => {
+      if (channel) supabase.removeChannel(channel);
+    };
   }, []);
 
   async function loadAlquileres() {

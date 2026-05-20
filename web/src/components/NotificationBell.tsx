@@ -22,12 +22,37 @@ export default function NotificationBell() {
 
   useEffect(() => {
     const supabase = createClient();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setToken(session.access_token);
-        loadNotificaciones(session.access_token);
-      }
+      if (!session) return;
+      setToken(session.access_token);
+      loadNotificaciones(session.access_token);
+
+      // Suscripción Realtime: escucha nuevas filas en notificaciones del usuario
+      channel = supabase
+        .channel("notificaciones-realtime")
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "notificaciones",
+            filter: `usuario_id=eq.${session.user.id}`,
+          },
+          (payload) => {
+            const nueva = payload.new as Notificacion;
+            if (!nueva.leida) {
+              setNotificaciones((prev) => [nueva, ...prev]);
+            }
+          },
+        )
+        .subscribe();
     });
+
+    return () => {
+      if (channel) supabase.removeChannel(channel);
+    };
   }, []);
 
   // Cerrar dropdown al hacer click fuera

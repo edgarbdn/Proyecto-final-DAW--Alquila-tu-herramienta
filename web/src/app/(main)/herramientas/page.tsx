@@ -23,7 +23,7 @@ function CatalogoContent() {
   const [total, setTotal] = useState(0);
   const [totalPaginas, setTotalPaginas] = useState(1);
   const searchParams = useSearchParams();
-  const [nombre, setNombre] = useState(searchParams.get("nombre") ?? "");
+  const [nombre, setNombre] = useState(searchParams.get("q") ?? searchParams.get("nombre") ?? "");
   const [categoria, setCategoria] = useState("");
   const [ciudad, setCiudad] = useState("");
   const [precioMin, setPrecioMin] = useState("");
@@ -38,7 +38,7 @@ function CatalogoContent() {
   }, []);
 
   useEffect(() => {
-    setNombre(searchParams.get("nombre") ?? "");
+    setNombre(searchParams.get("q") ?? searchParams.get("nombre") ?? "");
   }, [searchParams]);
 
   useEffect(() => { cargarHerramientas(); }, [pagina, nombre]);
@@ -111,6 +111,7 @@ function CatalogoContent() {
                   value={nombre}
                   onChange={(e) => setNombre(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleBuscar()}
+                  maxLength={100}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#F97316] transition-colors"
                 />
               </div>
@@ -148,6 +149,7 @@ function CatalogoContent() {
                   <input
                     type="number"
                     placeholder="Mín"
+                    min="0"
                     value={precioMin}
                     onChange={(e) => setPrecioMin(e.target.value)}
                     className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#F97316] transition-colors"
@@ -155,6 +157,7 @@ function CatalogoContent() {
                   <input
                     type="number"
                     placeholder="Máx"
+                    min="0"
                     value={precioMax}
                     onChange={(e) => setPrecioMax(e.target.value)}
                     className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#F97316] transition-colors"
