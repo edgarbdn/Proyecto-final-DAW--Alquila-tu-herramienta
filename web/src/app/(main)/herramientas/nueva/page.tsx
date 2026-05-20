@@ -140,6 +140,8 @@ export default function NuevaHerramientaPage() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
+    if (!fotoPrincipal) { setError("La foto principal es obligatoria"); setLoading(false); return; }
+    if (!precioDia || parseFloat(precioDia) <= 0) { setError("El precio debe ser mayor que 0"); setLoading(false); return; }
     if (horarios.length === 0) { setError("Añade al menos un horario de recogida"); setLoading(false); return; }
 
     const { data: herramienta, error: errorHerramienta } = await supabase
@@ -243,7 +245,7 @@ export default function NuevaHerramientaPage() {
               <input
                 id="precio"
                 type="number"
-                min="0"
+                min="0.01"
                 step="0.01"
                 value={precioDia}
                 onChange={(e) => setPrecioDia(e.target.value)}
@@ -267,10 +269,14 @@ export default function NuevaHerramientaPage() {
 
               {/* Foto principal */}
               <div>
-                <label className="text-sm font-medium text-gray-700 block mb-2">Foto principal</label>
+                <label className="text-sm font-medium text-gray-700 block mb-2">
+                  Foto principal <span className="text-red-400">*</span>
+                </label>
                 <div
                   onClick={() => fotoPrincipalRef.current?.click()}
-                  className="border-2 border-dashed border-gray-200 rounded-xl p-4 cursor-pointer hover:border-[#F97316] transition-colors flex items-center gap-4"
+                  className={`border-2 border-dashed rounded-xl p-4 cursor-pointer hover:border-[#F97316] transition-colors flex items-center gap-4 ${
+                    !fotoPrincipal ? "border-gray-200" : "border-[#F97316]"
+                  }`}
                 >
                   {fotoPrincipalPreview ? (
                     <div className="relative w-20 h-20 rounded-lg overflow-hidden shrink-0">

@@ -3,11 +3,12 @@ import { createMiddlewareClient } from "@/lib/supabase";
 
 export async function proxy(request: NextRequest) {
   const { supabase, response } = createMiddlewareClient(request);
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
 
-  //Guardo la ruta en path para luego usarla en las condiciones.
+  // getUser() verifica la sesión contra el servidor de Supabase
+  // evita race conditions al volver de Stripe u otras redirecciones externas
+  const { data: { user } } = await supabase.auth.getUser();
+  const session = user ? { user } : null;
+
   const path = request.nextUrl.pathname;
 
   // Si estás logueado e intentas ir a /login o /register, redirige a /
@@ -48,7 +49,7 @@ export async function proxy(request: NextRequest) {
     const { data: perfil } = await supabase
       .from("users")
       .select("rol")
-      .eq("id", session.user.id)
+      .eq("id", user!.id)
       .single();
 
     if (perfil?.rol !== "admin") {
