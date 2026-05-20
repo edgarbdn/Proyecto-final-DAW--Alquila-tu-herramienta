@@ -1,5 +1,6 @@
 import { createServerSideClient } from "@/lib/supabase-server";
 import { NextRequest, NextResponse } from "next/server";
+import { apiError, ERROR_MESSAGES } from "@/lib/api-error";
 
 export async function GET(
   request: NextRequest,
@@ -14,9 +15,7 @@ export async function GET(
     .eq("herramienta_id", id)
     .order("dias_minimos", { ascending: true });
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+  if (error) return apiError("GET /descuentos", error, 500, ERROR_MESSAGES.ERROR_SERVIDOR);
 
   return NextResponse.json({ descuentos: data });
 }
@@ -29,19 +28,11 @@ export async function POST(
 
   const authHeader = request.headers.get("Authorization");
   const token = authHeader?.replace("Bearer ", "");
-  if (!token) {
-    return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-  }
+  if (!token) return NextResponse.json({ error: ERROR_MESSAGES.NO_AUTENTICADO }, { status: 401 });
 
   const supabase = await createServerSideClient(token);
-
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser(token);
-  if (authError || !user) {
-    return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-  }
+  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+  if (authError || !user) return NextResponse.json({ error: ERROR_MESSAGES.NO_AUTENTICADO }, { status: 401 });
 
   const { data: herramienta } = await supabase
     .from("herramientas")
@@ -49,33 +40,25 @@ export async function POST(
     .eq("id", id)
     .single();
 
-  if (!herramienta || herramienta.vendedor_id !== user.id) {
-    return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+  if (!herramienta || herramienta.vendedor_id !== user.id)
+    return NextResponse.json({ error: ERROR_MESSAGES.NO_AUTORIZADO }, { status: 403 });
+
+  let body: any;
+  try { body = await request.json(); } catch {
+    return NextResponse.json({ error: ERROR_MESSAGES.DATOS_INVALIDOS }, { status: 400 });
   }
 
-  const body = await request.json();
-  const { dias_minimos, porcentaje } = body;
+  const dias_minimos = parseInt(body.dias_minimos);
+  const porcentaje = parseFloat(body.porcentaje);
 
-  if (!dias_minimos || !porcentaje) {
-    return NextResponse.json(
-      { error: "Faltan campos obligatorios" },
-      { status: 400 },
-    );
-  }
+  if (isNaN(dias_minimos) || isNaN(porcentaje))
+    return NextResponse.json({ error: "Los días mínimos y el porcentaje deben ser números válidos." }, { status: 400 });
 
-  if (porcentaje <= 0 || porcentaje >= 100) {
-    return NextResponse.json(
-      { error: "El porcentaje debe estar entre 1 y 99" },
-      { status: 400 },
-    );
-  }
+  if (dias_minimos < 2)
+    return NextResponse.json({ error: "Los días mínimos deben ser al menos 2." }, { status: 400 });
 
-  if (dias_minimos < 2) {
-    return NextResponse.json(
-      { error: "Los días mínimos deben ser al menos 2" },
-      { status: 400 },
-    );
-  }
+  if (porcentaje <= 0 || porcentaje >= 100)
+    return NextResponse.json({ error: "El descuento debe estar entre 1% y 99%." }, { status: 400 });
 
   const { data, error } = await supabase
     .from("descuentos")
@@ -83,9 +66,7 @@ export async function POST(
     .select()
     .single();
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+  if (error) return apiError("POST /descuentos", error, 500, ERROR_MESSAGES.ERROR_SERVIDOR);
 
   return NextResponse.json({ descuento: data }, { status: 201 });
 }
@@ -98,29 +79,17 @@ export async function DELETE(
 
   const authHeader = request.headers.get("Authorization");
   const token = authHeader?.replace("Bearer ", "");
-  if (!token) {
-    return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-  }
+  if (!token) return NextResponse.json({ error: ERROR_MESSAGES.NO_AUTENTICADO }, { status: 401 });
 
   const supabase = await createServerSideClient(token);
-
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser(token);
-  if (authError || !user) {
-    return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-  }
+  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+  if (authError || !user) return NextResponse.json({ error: ERROR_MESSAGES.NO_AUTENTICADO }, { status: 401 });
 
   const { searchParams } = new URL(request.url);
   const descuentoId = searchParams.get("descuento_id");
 
-  if (!descuentoId) {
-    return NextResponse.json(
-      { error: "Falta el id del descuento" },
-      { status: 400 },
-    );
-  }
+  if (!descuentoId)
+    return NextResponse.json({ error: ERROR_MESSAGES.CAMPOS_OBLIGATORIOS }, { status: 400 });
 
   const { data: descuento } = await supabase
     .from("descuentos")
@@ -128,18 +97,12 @@ export async function DELETE(
     .eq("id", descuentoId)
     .single();
 
-  if (!descuento || (descuento.herramientas as any).vendedor_id !== user.id) {
-    return NextResponse.json({ error: "No autorizado" }, { status: 403 });
-  }
+  if (!descuento || (descuento.herramientas as any).vendedor_id !== user.id)
+    return NextResponse.json({ error: ERROR_MESSAGES.NO_AUTORIZADO }, { status: 403 });
 
-  const { error } = await supabase
-    .from("descuentos")
-    .delete()
-    .eq("id", descuentoId);
+  const { error } = await supabase.from("descuentos").delete().eq("id", descuentoId);
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+  if (error) return apiError("DELETE /descuentos", error, 500, ERROR_MESSAGES.ERROR_SERVIDOR);
 
   return NextResponse.json({ ok: true });
 }

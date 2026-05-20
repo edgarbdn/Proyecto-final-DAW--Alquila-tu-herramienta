@@ -1,5 +1,6 @@
 import { createServerSideClient } from "@/lib/supabase-server";
 import { NextRequest, NextResponse } from "next/server";
+import { apiError, ERROR_MESSAGES } from "@/lib/api-error";
 
 export async function PATCH(
   request: NextRequest,
@@ -66,9 +67,7 @@ export async function PATCH(
     .update({ estado })
     .eq("id", id);
 
-  if (updateError) {
-    return NextResponse.json({ error: updateError.message }, { status: 500 });
-  }
+  if (updateError) return apiError("PATCH /alquileres/[id]", updateError, 500, ERROR_MESSAGES.ERROR_SERVIDOR);
 
   // Notificar al cliente
   const mensaje =

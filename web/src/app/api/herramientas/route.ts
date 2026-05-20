@@ -9,10 +9,18 @@ export async function GET(request: NextRequest) {
   const nombre = searchParams.get("nombre");
   const precioMin = searchParams.get("precio_min");
   const precioMax = searchParams.get("precio_max");
-  const pagina = parseInt(searchParams.get("pagina") ?? "1");
-  const porPagina = parseInt(searchParams.get("limite") ?? "9");
+  const pagina = Math.max(1, parseInt(searchParams.get("pagina") ?? "1") || 1);
+  const porPagina = Math.min(100, Math.max(1, parseInt(searchParams.get("limite") ?? "9") || 9));
   const aleatorio = searchParams.get("aleatorio") === "true";
   const offset = (pagina - 1) * porPagina;
+
+  // Sanitizar nombre: eliminar caracteres que puedan interferir con queries
+  const nombreRaw = searchParams.get("nombre") ?? "";
+  const nombreSanitizado = nombreRaw
+    .replace(/[;'"\\\-\-]/g, "")
+    .replace(/--+/g, "")
+    .trim()
+    .slice(0, 100) || null;
 
   const supabase = createClient();
 
@@ -57,7 +65,7 @@ export async function GET(request: NextRequest) {
     .range(offset, offset + porPagina - 1);
 
   // Filtros opcionales
-  if (nombre) query = query.ilike("nombre", `%${nombre}%`);
+  if (nombreSanitizado) query = query.ilike("nombre", `%${nombreSanitizado}%`);
   if (categoria) query = query.eq("categoria_id", categoria);
   if (vendedorIds !== null) {
     if (vendedorIds.length === 0) {
@@ -81,7 +89,8 @@ export async function GET(request: NextRequest) {
   const { data, error, count } = await query;
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[/api/herramientas] Query error:", error.message);
+    return NextResponse.json({ herramientas: [], total: 0, pagina, totalPaginas: 0 });
   }
 
   // Aplicar comisión al precio
