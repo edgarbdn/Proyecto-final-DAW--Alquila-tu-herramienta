@@ -46,6 +46,15 @@ function MisAlquileresContent() {
   const pagoEstado = searchParams.get("pago");
   const [modalPago, setModalPago] = useState(pagoEstado === "exitoso");
 
+  // Limpiar el parámetro ?pago= de la URL nada más montarse
+  useEffect(() => {
+    if (pagoEstado) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("pago");
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, []);
+
   useEffect(() => {
     const supabase = createClient();
     let channel: ReturnType<typeof supabase.channel> | null = null;

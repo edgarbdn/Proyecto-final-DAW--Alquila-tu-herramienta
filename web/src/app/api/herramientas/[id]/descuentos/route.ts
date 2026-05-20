@@ -57,6 +57,20 @@ export async function POST(
   if (dias_minimos < 2)
     return NextResponse.json({ error: "Los días mínimos deben ser al menos 2." }, { status: 400 });
 
+  if (dias_minimos > 30)
+    return NextResponse.json({ error: "Los días mínimos no pueden superar 30." }, { status: 400 });
+
+  // Verificar que no existe ya un descuento para esos días en esta herramienta
+  const { data: existente } = await supabase
+    .from("descuentos")
+    .select("id")
+    .eq("herramienta_id", id)
+    .eq("dias_minimos", dias_minimos)
+    .single();
+
+  if (existente)
+    return NextResponse.json({ error: "Ya existe un descuento para ese número de días mínimos." }, { status: 409 });
+
   if (porcentaje <= 0 || porcentaje >= 100)
     return NextResponse.json({ error: "El descuento debe estar entre 1% y 99%." }, { status: 400 });
 
