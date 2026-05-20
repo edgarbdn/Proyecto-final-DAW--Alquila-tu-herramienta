@@ -1,5 +1,6 @@
 import { createServerSideClient } from "@/lib/supabase-server";
 import { NextRequest, NextResponse } from "next/server";
+import { apiError, ERROR_MESSAGES } from "@/lib/api-error";
 
 export async function PATCH(
   request: NextRequest,
@@ -29,9 +30,7 @@ export async function PATCH(
     .eq("id", id)
     .eq("usuario_id", user.id);
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+  if (error) return apiError("PATCH /notificaciones/[id]", error, 500, ERROR_MESSAGES.ERROR_SERVIDOR);
 
   return NextResponse.json({ ok: true });
 }

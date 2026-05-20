@@ -40,12 +40,52 @@ export default function SolicitudesPage() {
 
   useEffect(() => {
     const supabase = createClient();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setToken(session.access_token);
-        loadAlquileres(session.access_token);
-      }
+      if (!session) return;
+      setToken(session.access_token);
+      loadAlquileres(session.access_token);
+
+      // Realtime: nueva solicitud recibida (INSERT) o cambio de estado (UPDATE)
+      channel = supabase
+        .channel("solicitudes-realtime")
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "alquileres",
+          },
+          () => {
+            // Recargar para obtener los datos relacionados completos
+            loadAlquileres(session.access_token);
+          },
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "alquileres",
+          },
+          (payload) => {
+            // Actualizar solo el estado del alquiler afectado
+            setAlquileres((prev) =>
+              prev.map((a) =>
+                a.id === payload.new.id
+                  ? { ...a, estado: payload.new.estado }
+                  : a,
+              ),
+            );
+          },
+        )
+        .subscribe();
     });
+
+    return () => {
+      if (channel) supabase.removeChannel(channel);
+    };
   }, []);
 
   async function loadAlquileres(t: string) {

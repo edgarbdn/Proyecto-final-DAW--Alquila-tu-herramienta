@@ -10,14 +10,14 @@ import "react-day-picker/style.css";
 import { createClient } from "@/lib/supabase";
 
 interface Foto { id: string; url: string; es_principal: boolean; orden: number; }
-interface Vendedor { id: string; nombre: string; apellidos: string; ciudad: string | null; direccion_publica: string | null; avatar_url: string | null; }
+interface Vendedor { nombre: string; apellidos: string; ciudad: string | null; avatar_url: string | null; }
 interface Categoria { id: string; nombre: string; }
 interface Valoracion { id: string; nota: number; comentario: string | null; created_at: string; autor: { nombre: string; apellidos: string } | null; }
 interface Descuento { id: string; dias_minimos: number; porcentaje: number; }
 interface Horario { id: string; hora: string; }
 interface Herramienta {
   id: string; nombre: string; descripcion: string; precio_dia: number; precio_dia_publico: number;
-  disponible: boolean; vendedor: Vendedor | null; categoria: Categoria;
+  disponible: boolean; vendedor_id: string | null; vendedor: Vendedor | null; categoria: Categoria;
   fotos: Foto[]; valoraciones: Valoracion[]; descuentos: Descuento[]; horarios: Horario[];
 }
 
@@ -178,7 +178,7 @@ export default function DetalleHerramientaPage() {
           {herramienta.vendedor && (
             <div className="flex-1 flex items-center justify-center">
               <Link
-                href={`/usuario/${herramienta.vendedor.id}`}
+                href={`/usuario/${herramienta.vendedor_id}`}
                 className="border-2 border-[#F97316] rounded-2xl p-4 pl-24 flex items-center relative min-h-[80px] w-full max-w-xs sm:max-w-sm mx-auto hover:bg-orange-50 transition-colors"
               >
                 <div className="absolute -left-5 top-1/2 -translate-y-1/2 w-24 h-24 rounded-full bg-[#F97316] overflow-hidden flex items-center justify-center text-white font-bold text-3xl shrink-0 border-2 border-[#F97316] shadow-md">
@@ -191,7 +191,6 @@ export default function DetalleHerramientaPage() {
                 <div className="min-w-0">
                   <p className="font-bold text-gray-900 text-base truncate">{herramienta.vendedor.nombre} {herramienta.vendedor.apellidos}</p>
                   {herramienta.vendedor.ciudad && <p className="text-sm text-gray-500 mt-1 truncate">{herramienta.vendedor.ciudad}</p>}
-                  {herramienta.vendedor.direccion_publica && <p className="text-sm text-gray-400 mt-0.5 truncate">{herramienta.vendedor.direccion_publica}</p>}
                 </div>
               </Link>
             </div>
@@ -270,7 +269,7 @@ export default function DetalleHerramientaPage() {
               Iniciar sesión
             </button>
           </div>
-        ) : usuarioId === herramienta.vendedor?.id ? (
+        ) : usuarioId === herramienta.vendedor_id ? (
           <div className="bg-gray-50 rounded-2xl p-6 text-center">
             <p className="text-gray-500 text-sm">No puedes alquilar tu propia herramienta</p>
           </div>
