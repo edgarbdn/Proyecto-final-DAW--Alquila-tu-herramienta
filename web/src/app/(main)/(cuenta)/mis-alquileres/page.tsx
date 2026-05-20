@@ -43,16 +43,22 @@ function MisAlquileresContent() {
   const [modalValoracion, setModalValoracion] = useState<Alquiler | null>(null);
   const [yaValorados, setYaValorados] = useState<Set<string>>(new Set());
   const searchParams = useSearchParams();
-  const pagoEstado = searchParams.get("pago");
+  const router = useRouter();
   const [modalPago, setModalPago] = useState(false);
+  const [pagoCancelado, setPagoCancelado] = useState(false);
+  const procesadoPago = useRef(false);
 
-  // Mostrar el modal UNA sola vez y limpiar el parámetro de la URL
+  // Leer ?pago= una sola vez al montar y limpiar la URL
   useEffect(() => {
-    if (pagoEstado === "exitoso") {
+    if (procesadoPago.current) return;
+    procesadoPago.current = true;
+    const pago = searchParams.get("pago");
+    if (pago === "exitoso") {
       setModalPago(true);
-      const url = new URL(window.location.href);
-      url.searchParams.delete("pago");
-      window.history.replaceState({}, "", url.toString());
+      router.replace("/mis-alquileres");
+    } else if (pago === "cancelado") {
+      setPagoCancelado(true);
+      router.replace("/mis-alquileres");
     }
   }, []);
 
@@ -156,8 +162,8 @@ function MisAlquileresContent() {
       )}
 
       {/* Mensaje pago cancelado */}
-      {pagoEstado === "cancelado" && !modalPago && (
-        <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3">
+      {pagoCancelado && (
+        <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 flex items-center justify-between">
           <p className="text-red-600 font-semibold text-sm">El pago fue cancelado. Puedes intentarlo de nuevo.</p>
           <button onClick={() => setPagoCancelado(false)} className="text-red-400 hover:text-red-600 ml-4">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
