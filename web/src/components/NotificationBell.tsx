@@ -24,34 +24,40 @@ export default function NotificationBell() {
     const supabase = createClient();
     let channel: ReturnType<typeof supabase.channel> | null = null;
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    async function init() {
+      const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
+
       setToken(session.access_token);
       loadNotificaciones(session.access_token);
 
-      // Suscripción Realtime: escucha nuevas filas en notificaciones del usuario
-      channel = supabase
-        .channel("notificaciones-realtime")
-        .on(
-          "postgres_changes",
-          {
-            event: "INSERT",
-            schema: "public",
-            table: "notificaciones",
-            filter: `usuario_id=eq.${session.user.id}`,
-          },
-          (payload) => {
-            const nueva = payload.new as Notificacion;
-            if (!nueva.leida) {
-              setNotificaciones((prev) => [nueva, ...prev]);
-            }
-          },
-        )
-        .subscribe();
-    });
+      // Primero crear y configurar el canal, luego suscribirse
+      channel = supabase.channel(`notif-${session.user.id}-${Math.random()}`);
+      channel.on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notificaciones",
+          filter: `usuario_id=eq.${session.user.id}`,
+        },
+        (payload) => {
+          const nueva = payload.new as Notificacion;
+          if (!nueva.leida) {
+            setNotificaciones((prev) => [nueva, ...prev]);
+          }
+        },
+      );
+      channel.subscribe();
+    }
+
+    init();
 
     return () => {
-      if (channel) supabase.removeChannel(channel);
+      if (channel) {
+        channel.unsubscribe();
+        supabase.removeChannel(channel);
+      }
     };
   }, []);
 
