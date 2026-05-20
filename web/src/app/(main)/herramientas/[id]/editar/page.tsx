@@ -36,6 +36,7 @@ export default function EditarHerramientaPage() {
   // Fotos
   const [fotosExistentes, setFotosExistentes] = useState<FotoExistente[]>([]);
   const [eliminandoFoto, setEliminandoFoto] = useState<string | null>(null);
+  const [confirmarEliminarFoto, setConfirmarEliminarFoto] = useState<FotoExistente | null>(null);
   const [fotosNuevas, setFotosNuevas] = useState<File[]>([]);
   const [fotosNuevasPreview, setFotosNuevasPreview] = useState<string[]>([]);
   const [subiendoFotos, setSubiendoFotos] = useState(false);
@@ -146,7 +147,7 @@ export default function EditarHerramientaPage() {
     const dias = parseInt(diasMinimos);
     const pct = parseFloat(porcentaje);
 
-    if (!diasMinimos || isNaN(dias) || dias < 2) { setErrorDescuento("Los días mínimos deben ser 2 o más"); setLoadingDescuento(false); return; }
+    if (!diasMinimos || isNaN(dias) || dias < 2 || dias > 30) { setErrorDescuento("Los días mínimos deben estar entre 2 y 30"); setLoadingDescuento(false); return; }
     if (!porcentaje || isNaN(pct) || pct < 1 || pct > 99) { setErrorDescuento("El descuento debe estar entre 1% y 99%"); setLoadingDescuento(false); return; }
 
     const supabase = createClient();
@@ -484,7 +485,7 @@ export default function EditarHerramientaPage() {
                         <Image src={principal.url} alt="Foto principal" fill className="object-cover" />
                         <button
                           type="button"
-                          onClick={() => handleEliminarFoto(principal)}
+                          onClick={() => setConfirmarEliminarFoto(principal)}
                           disabled={eliminandoFoto === principal.id}
                           className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
                         >
@@ -578,7 +579,7 @@ export default function EditarHerramientaPage() {
                         <Image src={foto.url} alt="Foto" fill className="object-cover" />
                         <button
                           type="button"
-                          onClick={() => handleEliminarFoto(foto)}
+                          onClick={() => setConfirmarEliminarFoto(foto)}
                           disabled={eliminandoFoto === foto.id}
                           className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
                         >
@@ -675,6 +676,7 @@ export default function EditarHerramientaPage() {
                   <input
                     type="number"
                     min="2"
+                    max="30"
                     value={diasMinimos}
                     onChange={(e) => setDiasMinimos(e.target.value)}
                     placeholder="Ej: 7"
@@ -807,6 +809,45 @@ export default function EditarHerramientaPage() {
           </div>
         </div>
       </div>
+
+      {/* Modal confirmación eliminar foto */}
+      {confirmarEliminarFoto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/50">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+              <svg className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 text-center mb-2">¿Eliminar foto?</h3>
+            <p className="text-sm text-gray-500 text-center mb-6">
+              {confirmarEliminarFoto.es_principal
+                ? "Vas a eliminar la foto principal. Esta acción no se puede deshacer."
+                : "Esta acción no se puede deshacer."}
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirmarEliminarFoto(null)}
+                className="flex-1 border border-gray-200 text-gray-600 font-semibold py-2.5 rounded-xl hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  const foto = confirmarEliminarFoto;
+                  setConfirmarEliminarFoto(null);
+                  await handleEliminarFoto(foto);
+                }}
+                className="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold py-2.5 rounded-xl transition-colors"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
