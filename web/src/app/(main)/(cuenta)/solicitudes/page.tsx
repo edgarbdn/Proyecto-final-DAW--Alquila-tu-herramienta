@@ -42,49 +42,37 @@ export default function SolicitudesPage() {
     const supabase = createClient();
     let channel: ReturnType<typeof supabase.channel> | null = null;
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    async function init() {
+      const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
       setToken(session.access_token);
       loadAlquileres(session.access_token);
 
-      // Realtime: nueva solicitud recibida (INSERT) o cambio de estado (UPDATE)
-      channel = supabase
-        .channel("solicitudes-realtime")
-        .on(
-          "postgres_changes",
-          {
-            event: "INSERT",
-            schema: "public",
-            table: "alquileres",
-          },
-          () => {
-            // Recargar para obtener los datos relacionados completos
-            loadAlquileres(session.access_token);
-          },
-        )
-        .on(
-          "postgres_changes",
-          {
-            event: "UPDATE",
-            schema: "public",
-            table: "alquileres",
-          },
-          (payload) => {
-            // Actualizar solo el estado del alquiler afectado
-            setAlquileres((prev) =>
-              prev.map((a) =>
-                a.id === payload.new.id
-                  ? { ...a, estado: payload.new.estado }
-                  : a,
-              ),
-            );
-          },
-        )
-        .subscribe();
-    });
+      channel = supabase.channel(`solicitudes-${session.user.id}-${Math.random()}`);
+      channel.on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "alquileres" },
+        () => { loadAlquileres(session.access_token); },
+      );
+      channel.on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "alquileres" },
+        (payload) => {
+          setAlquileres((prev) =>
+            prev.map((a) => a.id === payload.new.id ? { ...a, estado: payload.new.estado } : a)
+          );
+        },
+      );
+      channel.subscribe();
+    }
+
+    init();
 
     return () => {
-      if (channel) supabase.removeChannel(channel);
+      if (channel) {
+        channel.unsubscribe();
+        supabase.removeChannel(channel);
+      }
     };
   }, []);
 
