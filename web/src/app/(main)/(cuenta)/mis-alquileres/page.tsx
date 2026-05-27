@@ -44,19 +44,15 @@ function MisAlquileresContent() {
   const [yaValorados, setYaValorados] = useState<Set<string>>(new Set());
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [modalPago, setModalPago] = useState(false);
   const [pagoCancelado, setPagoCancelado] = useState(false);
   const procesadoPago = useRef(false);
 
-  // Leer ?pago= una sola vez al montar y limpiar la URL
+  // Solo gestionar pago cancelado — exitoso ya lo gestiona /pago/exitoso
   useEffect(() => {
     if (procesadoPago.current) return;
     procesadoPago.current = true;
     const pago = searchParams.get("pago");
-    if (pago === "exitoso") {
-      setModalPago(true);
-      router.replace("/mis-alquileres");
-    } else if (pago === "cancelado") {
+    if (pago === "cancelado") {
       setPagoCancelado(true);
       router.replace("/mis-alquileres");
     }
@@ -141,27 +137,6 @@ function MisAlquileresContent() {
         <h1 className="text-2xl font-bold text-gray-900">Mis alquileres</h1>
         <p className="text-sm text-gray-500 mt-0.5">{alquileres.length} alquiler{alquileres.length !== 1 ? "es" : ""} en total</p>
       </div>
-
-      {/* Modal pago exitoso */}
-      {modalPago && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-8 text-center">
-            <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-              </svg>
-            </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">¡Pago completado!</h2>
-            <p className="text-sm text-gray-500 mb-6">Tu alquiler ya está activo. ¡Disfruta de la herramienta!</p>
-            <button
-              onClick={() => setModalPago(false)}
-              className="w-full bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold py-3 rounded-xl transition-colors"
-            >
-              Ver mis alquileres
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Mensaje pago cancelado */}
       {pagoCancelado && (
