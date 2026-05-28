@@ -25,6 +25,14 @@ type Alquiler = {
   } | null;
 };
 
+const CARD_STYLES: Record<string, { border: string; bg: string }> = {
+  pendiente:  { border: "border-yellow-300", bg: "bg-yellow-50" },
+  confirmado: { border: "border-blue-300",   bg: "bg-blue-50" },
+  activo:     { border: "border-green-300",  bg: "bg-green-50" },
+  finalizado: { border: "border-gray-200",   bg: "" },
+  cancelado:  { border: "border-red-200",    bg: "bg-red-50" },
+};
+
 const ESTADO_STYLES: Record<string, { bg: string; text: string; dot: string; label: string }> = {
   pendiente:  { bg: "bg-yellow-100", text: "text-yellow-700", dot: "bg-yellow-500", label: "Pendiente" },
   confirmado: { bg: "bg-blue-100",   text: "text-blue-700",   dot: "bg-blue-500",   label: "Confirmado" },
@@ -193,12 +201,10 @@ function MisAlquileresContent() {
             const estilo = ESTADO_STYLES[a.estado] ?? ESTADO_STYLES.finalizado;
             const foto = a.herramientas?.fotos?.find((f) => f.es_principal)?.url ?? a.herramientas?.fotos?.[0]?.url;
             return (
-              <div key={a.id} className={`bg-white rounded-2xl border shadow-sm overflow-hidden ${
-                a.estado === "confirmado" ? "border-blue-300" : "border-gray-100"
-              }`}>
-                <div className={`p-4 flex items-center gap-4 ${
-                  a.estado === "confirmado" ? "bg-blue-50" : ""
-                }`}>
+              <div key={a.id} className={`rounded-2xl border shadow-sm overflow-hidden ${
+                CARD_STYLES[a.estado]?.border ?? "border-gray-200"
+              } ${CARD_STYLES[a.estado]?.bg ?? "bg-white"}`}>
+                <div className="p-4 flex items-center gap-4">
                   {/* Foto */}
                   <div className="w-16 h-16 rounded-xl bg-gray-100 overflow-hidden shrink-0 relative">
                     {foto ? (
