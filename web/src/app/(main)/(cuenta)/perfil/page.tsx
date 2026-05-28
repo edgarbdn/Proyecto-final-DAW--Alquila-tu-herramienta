@@ -260,10 +260,18 @@ function PerfilContent() {
           />
         </div>
 
-        <div>
-          <label htmlFor="direccion" className="text-sm font-medium text-gray-700 block mb-1">
-            Dirección privada
-          </label>
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-6 h-6 rounded-lg bg-red-100 flex items-center justify-center shrink-0">
+              <svg className="w-3.5 h-3.5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-800">Dirección privada</p>
+              <p className="text-xs text-gray-400">Solo la ve el equipo de <span className="font-semibold text-gray-600">Eitool</span>. Nunca se muestra públicamente.</p>
+            </div>
+          </div>
           <input
             id="direccion"
             name="direccion"
@@ -274,13 +282,19 @@ function PerfilContent() {
           />
         </div>
 
-        <div>
-          <label htmlFor="direccion_publica" className="text-sm font-medium text-gray-700 block mb-1">
-            Dirección pública
-            <span className="ml-1 text-xs text-gray-400 font-normal">
-              (visible para quienes alquilen tus herramientas)
-            </span>
-          </label>
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-6 h-6 rounded-lg bg-green-100 flex items-center justify-center shrink-0">
+              <svg className="w-3.5 h-3.5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-800">Dirección pública</p>
+              <p className="text-xs text-gray-400">Visible para quienes alquilen tus herramientas. Usa una zona aproximada, no tu dirección exacta.</p>
+            </div>
+          </div>
           <input
             id="direccion_publica"
             name="direccion_publica"
