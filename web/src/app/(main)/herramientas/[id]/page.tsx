@@ -321,6 +321,17 @@ export default function DetalleHerramientaPage() {
                 {herramienta.horarios.length > 0 && (
                   <div>
                     <p className="text-sm font-semibold text-gray-700 mb-2">Horario de recogida</p>
+
+                    {/* Cuadro informativo */}
+                    <div className="flex items-start gap-3 bg-blue-50 border-2 border-blue-200 rounded-xl px-4 py-4 mb-3">
+                      <svg className="w-6 h-6 text-blue-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                      </svg>
+                      <p className="text-sm text-blue-700 leading-relaxed">
+                        El horario de recogida es el acordado. Por norma general, la devolución se realizará en el mismo horario, aunque puede acordarse uno diferente con el propietario en el momento de la recogida.
+                      </p>
+                    </div>
+
                     <div className="flex flex-wrap gap-2">
                       {herramienta.horarios.map((h) => (
                         <button
