@@ -177,22 +177,58 @@ export default function DetalleHerramientaPage() {
           {/* Vendedor */}
           {herramienta.vendedor && (
             <div className="flex-1 flex items-center justify-center">
-              <Link
-                href={`/usuario/${herramienta.vendedor_id}`}
-                className="border-2 border-[#F97316] rounded-2xl p-4 pl-24 flex items-center relative min-h-[80px] w-full max-w-xs sm:max-w-sm mx-auto hover:bg-orange-50 transition-colors"
-              >
-                <div className="absolute -left-5 top-1/2 -translate-y-1/2 w-24 h-24 rounded-full bg-[#F97316] overflow-hidden flex items-center justify-center text-white font-bold text-3xl shrink-0 border-2 border-[#F97316] shadow-md">
-                  {herramienta.vendedor.avatar_url ? (
-                    <Image src={herramienta.vendedor.avatar_url} alt="Avatar" width={96} height={96} className="object-cover w-full h-full" />
-                  ) : (
-                    herramienta.vendedor.nombre[0]?.toUpperCase()
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <p className="font-bold text-gray-900 text-base truncate">{herramienta.vendedor.nombre} {herramienta.vendedor.apellidos}</p>
-                  {herramienta.vendedor.ciudad && <p className="text-sm text-gray-500 mt-1 truncate">{herramienta.vendedor.ciudad}</p>}
-                </div>
-              </Link>
+              <div className="flex flex-col gap-3 w-full max-w-xs sm:max-w-sm">
+                <Link
+                  href={`/usuario/${herramienta.vendedor_id}`}
+                  className="border-2 border-[#F97316] rounded-2xl p-4 pl-24 flex items-center relative min-h-[80px] w-full hover:bg-orange-50 transition-colors"
+                >
+                  <div className="absolute -left-5 top-1/2 -translate-y-1/2 w-24 h-24 rounded-full bg-[#F97316] overflow-hidden flex items-center justify-center text-white font-bold text-3xl shrink-0 border-2 border-[#F97316] shadow-md">
+                    {herramienta.vendedor.avatar_url ? (
+                      <Image src={herramienta.vendedor.avatar_url} alt="Avatar" width={96} height={96} className="object-cover w-full h-full" />
+                    ) : (
+                      herramienta.vendedor.nombre[0]?.toUpperCase()
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-bold text-gray-900 text-base truncate">{herramienta.vendedor.nombre} {herramienta.vendedor.apellidos}</p>
+                    {herramienta.vendedor.ciudad && <p className="text-sm text-gray-500 mt-1 truncate">{herramienta.vendedor.ciudad}</p>}
+                  </div>
+                </Link>
+
+                {/* Recuadro informativo de contacto */}
+                {usuarioId && usuarioId !== herramienta.vendedor_id && (
+                  <div className="bg-orange-50 border-2 border-[#F97316] rounded-2xl p-4 space-y-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-[#F97316] flex items-center justify-center shrink-0">
+                        <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 9.75a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375m-13.5 3.01c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.184-4.183a1.14 1.14 0 01.778-.332 48.294 48.294 0 005.83-.498c1.585-.233 2.708-1.626 2.708-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="font-bold text-gray-900 text-sm">¿Tienes alguna duda?</p>
+                        <p className="text-xs text-gray-600 mt-0.5 leading-relaxed">
+                          Sobre la herramienta, el horario de recogida o la devolución… El propietario te responderá antes de confirmar el alquiler.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        // Abrir el chat flotante con esta conversación
+                        const event = new CustomEvent("abrirChat", {
+                          detail: { herramienta_id: herramienta.id, usuario_id: herramienta.vendedor_id }
+                        });
+                        window.dispatchEvent(event);
+                      }}
+                      className="w-full flex items-center justify-center gap-2 bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold py-2.5 rounded-xl transition-colors text-sm"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 9.75a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375m-13.5 3.01c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.184-4.183a1.14 1.14 0 01.778-.332 48.294 48.294 0 005.83-.498c1.585-.233 2.708-1.626 2.708-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+                      </svg>
+                      Contactar con el propietario
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -321,6 +357,17 @@ export default function DetalleHerramientaPage() {
                 {herramienta.horarios.length > 0 && (
                   <div>
                     <p className="text-sm font-semibold text-gray-700 mb-2">Horario de recogida</p>
+
+                    {/* Cuadro informativo */}
+                    <div className="flex items-start gap-3 bg-blue-50 border-2 border-blue-200 rounded-xl px-4 py-4 mb-3">
+                      <svg className="w-6 h-6 text-blue-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                      </svg>
+                      <p className="text-sm text-blue-700 leading-relaxed">
+                        El horario de recogida es el acordado. Por norma general, la devolución se realizará en el mismo horario, aunque puede acordarse uno diferente con el propietario en el momento de la recogida.
+                      </p>
+                    </div>
+
                     <div className="flex flex-wrap gap-2">
                       {herramienta.horarios.map((h) => (
                         <button
