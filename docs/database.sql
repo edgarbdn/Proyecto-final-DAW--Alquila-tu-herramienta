@@ -81,10 +81,36 @@ CREATE TABLE "fotos" (
   "created_at" timestamp DEFAULT (now())
 );
 
+CREATE TABLE "horarios_recogida" (
+  "id" uuid PRIMARY KEY DEFAULT (gen_random_uuid()),
+  "herramienta_id" uuid NOT NULL REFERENCES herramientas(id) ON DELETE CASCADE,
+  "hora" varchar NOT NULL,
+  "created_at" timestamp DEFAULT (now())
+);
+
+CREATE TABLE "disponibilidad" (
+  "id" uuid PRIMARY KEY DEFAULT (gen_random_uuid()),
+  "herramienta_id" uuid NOT NULL REFERENCES herramientas(id) ON DELETE CASCADE,
+  "fecha" date NOT NULL,
+  "created_at" timestamp DEFAULT (now()),
+  UNIQUE (herramienta_id, fecha)
+);
+
+CREATE TABLE "descuentos" (
+  "id" uuid PRIMARY KEY DEFAULT (gen_random_uuid()),
+  "herramienta_id" uuid NOT NULL REFERENCES herramientas(id) ON DELETE CASCADE,
+  "dias_minimos" int NOT NULL,
+  "porcentaje" decimal NOT NULL,
+  "activo" boolean DEFAULT true,
+  "created_at" timestamp DEFAULT (now()),
+  UNIQUE (herramienta_id, dias_minimos)
+);
+
 CREATE TABLE "alquileres" (
   "id" uuid PRIMARY KEY DEFAULT (gen_random_uuid()),
   "herramienta_id" uuid NOT NULL REFERENCES herramientas(id) ON DELETE CASCADE,
   "cliente_id" uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  "horario_recogida_id" uuid REFERENCES horarios_recogida(id),
   "fecha_inicio" date NOT NULL,
   "fecha_fin" date NOT NULL,
   "dias" int NOT NULL,
@@ -92,16 +118,6 @@ CREATE TABLE "alquileres" (
   "comision_plataforma" decimal NOT NULL,
   "precio_final" decimal NOT NULL,
   "estado" estado_alquiler NOT NULL DEFAULT 'pendiente',
-  "created_at" timestamp DEFAULT (now())
-);
-
-CREATE TABLE "valoraciones" (
-  "id" uuid PRIMARY KEY DEFAULT (gen_random_uuid()),
-  "alquiler_id" uuid NOT NULL REFERENCES alquileres(id) ON DELETE CASCADE,
-  "autor_id" uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  "destinatario_id" uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  "nota" int NOT NULL CHECK (nota >= 1 AND nota <= 5),
-  "comentario" text,
   "created_at" timestamp DEFAULT (now())
 );
 
@@ -115,12 +131,13 @@ CREATE TABLE "pagos" (
   "created_at" timestamp DEFAULT (now())
 );
 
-CREATE TABLE "descuentos" (
+CREATE TABLE "valoraciones" (
   "id" uuid PRIMARY KEY DEFAULT (gen_random_uuid()),
-  "herramienta_id" uuid NOT NULL REFERENCES herramientas(id) ON DELETE CASCADE,
-  "dias_minimos" int NOT NULL,
-  "porcentaje" decimal NOT NULL,
-  "activo" boolean DEFAULT true,
+  "alquiler_id" uuid NOT NULL REFERENCES alquileres(id) ON DELETE CASCADE,
+  "autor_id" uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  "destinatario_id" uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  "nota" int NOT NULL CHECK (nota >= 1 AND nota <= 5),
+  "comentario" text,
   "created_at" timestamp DEFAULT (now())
 );
 
@@ -129,9 +146,25 @@ CREATE TABLE "notificaciones" (
   "usuario_id" uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   "titulo" varchar NOT NULL,
   "mensaje" text NOT NULL,
+  "enlace" varchar,
   "leida" boolean DEFAULT false,
   "created_at" timestamp DEFAULT (now())
 );
+
+CREATE TABLE "mensajes" (
+  "id" uuid PRIMARY KEY DEFAULT (gen_random_uuid()),
+  "de_usuario_id" uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  "para_usuario_id" uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  "herramienta_id" uuid NOT NULL REFERENCES herramientas(id) ON DELETE CASCADE,
+  "contenido" text NOT NULL CHECK (char_length(contenido) > 0 AND char_length(contenido) <= 1000),
+  "leido" boolean NOT NULL DEFAULT false,
+  "created_at" timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_mensajes_de_usuario ON mensajes(de_usuario_id);
+CREATE INDEX idx_mensajes_para_usuario ON mensajes(para_usuario_id);
+CREATE INDEX idx_mensajes_herramienta ON mensajes(herramienta_id);
+CREATE INDEX idx_mensajes_created_at ON mensajes(created_at);
 
 CREATE TABLE "configuracion" (
   "clave" varchar PRIMARY KEY,
